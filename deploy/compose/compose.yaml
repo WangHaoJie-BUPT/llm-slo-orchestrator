@@ -1,6 +1,44 @@
-name: llm-slo-observability
+name: llm-slo-orchestrator
 
 services:
+  vllm:
+    image: docker.1ms.run/vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268
+    profiles: [gpu]
+    gpus: all
+    ipc: host
+    shm_size: 8gb
+    environment:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    command:
+      - --model
+      - /models/qwen3-0.6b
+      - --served-model-name
+      - qwen3-0.6b
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --max-model-len
+      - "4096"
+      - --gpu-memory-utilization
+      - "0.75"
+    ports:
+      - 127.0.0.1:8000:8000
+    volumes:
+      - ${MODEL_DIR:-/path/to/Qwen3-0.6B-c1899de}:/models/qwen3-0.6b:ro
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 90s
+    stop_grace_period: 30s
+
   prometheus:
     image: docker.m.daocloud.io/prom/prometheus:v3.13.1@sha256:bd2dcadfb0d1096e2a4c21817ac7af918e2f19ff628e4bf25fd67a924c13dd80
     command:
@@ -29,4 +67,3 @@ services:
 
 volumes:
   grafana-data: {}
-

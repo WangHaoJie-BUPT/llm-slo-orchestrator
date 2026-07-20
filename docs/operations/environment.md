@@ -40,3 +40,19 @@ GOPROXY=https://goproxy.cn,direct make verify
 ```
 
 Keep `GOSUMDB=sum.golang.org`; the repository locks dependency sums in `go.sum`.
+
+## W1 Local Inference
+
+The frozen Qwen3-0.6B snapshot is stored outside the repository at
+`/path/to/Qwen3-0.6B-c1899de`. Verify it before starting the container:
+
+```bash
+make verify-model
+make gpu-up
+curl --fail http://127.0.0.1:8000/health
+make e2e-gpu
+```
+
+The Compose service sets Hugging Face and Transformers offline modes. It cannot
+silently replace the pinned snapshot with a network download. Stop it with
+`make gpu-down` when the GPU is needed for other work.

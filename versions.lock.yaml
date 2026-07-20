@@ -42,6 +42,7 @@ inference:
     version: "0.25.1"
     source: "docker.io/vllm/vllm-openai:v0.25.1"
     mirror: "docker.m.daocloud.io/vllm/vllm-openai:v0.25.1"
+    runtimeMirror: "docker.1ms.run/vllm/vllm-openai:v0.25.1"
     indexDigest: "sha256:e4f88a835143cd22aee2397a26ec6bb80b3a4a6fe0c882bcbc63822904766089"
     linuxAmd64Digest: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
     cuda: "13.0.2"
@@ -86,7 +87,7 @@ buildImages:
 network:
   dockerHubDirectAccess: false
   reason: "registry-1.docker.io DNS is unreliable on the current network"
-  mirrorPolicy: "use explicit mirror names and verify the upstream content digest"
+  mirrorPolicy: "use explicit mirror names and verify the upstream content digest; W1 uses docker.1ms.run after DaoCloud rate limiting"
   localGoProxy: "https://goproxy.cn,direct"
   goChecksumPolicy: "keep GOSUMDB=sum.golang.org; never bypass module checksums"
 

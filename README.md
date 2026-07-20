@@ -4,9 +4,9 @@ SLO-aware routing and performance engineering for self-hosted vLLM on Kubernetes
 
 ## Status
 
-W0 environment and contract freeze. The repository currently provides stable API
-boundaries, version locks, verification commands, and deployment scaffolding. It
-does not yet claim a working vLLM request path or any performance improvement.
+W0 environment and contract freeze is committed. W1 adds a digest-pinned local
+vLLM service and evidence-producing single-endpoint smoke path. Runtime validation
+remains pending until the generated W1 manifest records a successful GPU run.
 
 ## Scope
 
@@ -51,10 +51,26 @@ implementation lands:
 
 ```bash
 make e2e-fake
-make e2e-gpu
 make benchmark
 make report
 ```
+
+## W1 GPU Smoke
+
+The model directory must contain the exact Qwen3-0.6B revision frozen in
+`versions.lock.yaml`. The default location is on the E drive:
+
+```bash
+make verify-model
+make gpu-up
+make e2e-gpu
+make gpu-down
+```
+
+`make e2e-gpu` retains the service after the run and writes raw request, metrics,
+container-log, manifest, and summary evidence under a timestamped `evidence/w1-*`
+directory. Override `MODEL_DIR`, `VLLM_BASE_URL`, or `W1_EVIDENCE_DIR` explicitly
+when reproducing another run.
 
 ## Evidence Boundary
 

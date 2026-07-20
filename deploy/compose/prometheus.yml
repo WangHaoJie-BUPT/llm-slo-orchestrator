@@ -6,7 +6,9 @@ scrape_configs:
   - job_name: router
     static_configs:
       - targets: [host.docker.internal:8080]
+  - job_name: vllm
+    static_configs:
+      - targets: [vllm:8000]
   - job_name: prometheus
     static_configs:
       - targets: [localhost:9090]
-
