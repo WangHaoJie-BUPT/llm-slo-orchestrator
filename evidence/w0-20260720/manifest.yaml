@@ -6,9 +6,9 @@ purpose: "environment, version, interface, and command-contract freeze"
 
 repository:
   branch: main
-  commit: uncommitted-initial-skeleton
-  dirty: true
-  note: "replace with the initial W0 commit SHA in the follow-up evidence commit"
+  commit: 723a23451ffbaf9c87ac95cf7a952d034286fb05
+  dirty: false
+  note: "this manifest update is recorded by a follow-up evidence commit"
 
 environment:
   versionsLock: versions.lock.yaml
