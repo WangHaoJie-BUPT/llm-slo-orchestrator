@@ -1,0 +1,11 @@
+{
+  "run_id": "w0-20260720",
+  "evidence_level": "L0",
+  "status": "passed",
+  "checks_passed": 9,
+  "checks_failed": 0,
+  "gpu_container_validated": true,
+  "kind_cluster_validated": true,
+  "vllm_model_serving_validated": false
+}
+

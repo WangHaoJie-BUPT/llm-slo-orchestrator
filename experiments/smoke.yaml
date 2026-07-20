@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: w1-single-endpoint-smoke
+seed: 20260720
+model: qwen3-0.6b-pinned
+arrival:
+  type: constant
+  ratePerSecond: 0.2
+request:
+  inputTokens: 128
+  outputTokens: 64
+  count: 10
+evidenceLevel: L2
+

@@ -1,0 +1,26 @@
+apiVersion: inference.bupt.dev/v1alpha1
+kind: InferenceSLOPolicy
+metadata:
+  name: online-chat
+spec:
+  model: qwen3-0.6b-pinned
+  objectives:
+    ttftP95Ms: 800
+    tpotP95Ms: 80
+    availability: 0.995
+  routing:
+    strategy: slo-prefix-affinity
+    weights:
+      queue: 35
+      ttftRisk: 35
+      prefix: 20
+      utilization: 10
+    metricFreshnessSeconds: 15
+  admission:
+    maxPredictedTTFTMs: 1200
+    lowPriorityAction: reject
+    retryAfterSeconds: 2
+  fairness:
+    tenantBurst: 8
+    tenantRatePerSecond: 2
+

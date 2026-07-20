@@ -1,0 +1,100 @@
+schemaVersion: 1
+frozenAt: "2026-07-20"
+status: w0-candidate-freeze
+
+host:
+  os: "Windows 11 Pro 25H2 build 26200.8875"
+  wsl: "2.7.10"
+  wslKernel: "6.18.33.2-2"
+  distribution: "Ubuntu 24.04.4 LTS"
+  gpu: "NVIDIA GeForce RTX 5070 Ti"
+  gpuMemoryMiB: 16303
+  nvidiaDriver: "596.21"
+  driverCudaCapability: "13.2"
+
+development:
+  go: "1.26.5"
+  python: "3.12.3"
+  git: "2.43.0"
+  make: "4.3"
+  gcc: "13.3.0"
+
+goModules:
+  yamlV3:
+    version: "3.0.1"
+    moduleSum: "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+    goModSum: "h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+
+orchestration:
+  dockerDesktop: "4.82.0"
+  dockerEngine: "29.6.1"
+  dockerCompose: "5.3.0"
+  kubectl: "1.36.2"
+  kind: "0.32.0"
+  helm: "4.2.3"
+  kindNode:
+    source: "docker.io/kindest/node:v1.36.1"
+    mirror: "docker.m.daocloud.io/kindest/node:v1.36.1"
+    digest: "sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+
+inference:
+  vllm:
+    version: "0.25.1"
+    source: "docker.io/vllm/vllm-openai:v0.25.1"
+    mirror: "docker.m.daocloud.io/vllm/vllm-openai:v0.25.1"
+    indexDigest: "sha256:e4f88a835143cd22aee2397a26ec6bb80b3a4a6fe0c882bcbc63822904766089"
+    linuxAmd64Digest: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+    cuda: "13.0.2"
+    python: "3.12"
+    verification: "pending W1 e2e-gpu"
+  model:
+    id: "Qwen/Qwen3-0.6B"
+    revision: "c1899de289a04d12100db370d81485cdf75e47ca"
+    license: "Apache-2.0"
+    primaryWeight: "model.safetensors"
+    primaryWeightSha256: "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+    primaryWeightBytes: 1503300328
+    metadataSource: "hf-mirror API; revalidate against downloaded files before W1"
+  guidellm:
+    version: "0.7.1"
+    pythonRequirement: ">=3.10,<4.0"
+    wheelSha256: "ab40c007105c66010565b5ce113a341ef7f668e5515964cdb70a574f5eb1201d"
+    verification: "pending W1 loadgen environment"
+
+observability:
+  prometheus:
+    version: "3.13.1"
+    source: "docker.io/prom/prometheus:v3.13.1"
+    mirror: "docker.m.daocloud.io/prom/prometheus:v3.13.1"
+    linuxAmd64Digest: "sha256:bd2dcadfb0d1096e2a4c21817ac7af918e2f19ff628e4bf25fd67a924c13dd80"
+  grafana:
+    version: "13.1.0"
+    source: "docker.io/grafana/grafana:13.1.0"
+    mirror: "docker.m.daocloud.io/grafana/grafana:13.1.0"
+    linuxAmd64Digest: "sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534"
+
+buildImages:
+  golang:
+    source: "docker.io/library/golang:1.26.5-bookworm"
+    mirror: "docker.m.daocloud.io/library/golang:1.26.5-bookworm"
+    linuxAmd64Digest: "sha256:3f6236bd765f898a2a3c2946112b04097814c4529d44534674700cd07b9c6b4c"
+  cudaSmoke:
+    source: "docker.io/nvidia/cuda:13.0.2-base-ubuntu24.04"
+    mirror: "docker.m.daocloud.io/nvidia/cuda:13.0.2-base-ubuntu24.04"
+    digest: "sha256:2ab6381d970b211fb93853796dc6707eb8a72575a375c422b17cf4d8b2641701"
+
+network:
+  dockerHubDirectAccess: false
+  reason: "registry-1.docker.io DNS is unreliable on the current network"
+  mirrorPolicy: "use explicit mirror names and verify the upstream content digest"
+  localGoProxy: "https://goproxy.cn,direct"
+  goChecksumPolicy: "keep GOSUMDB=sum.golang.org; never bypass module checksums"
+
+sources:
+  - "https://github.com/vllm-project/vllm/releases/tag/v0.25.1"
+  - "https://raw.githubusercontent.com/vllm-project/vllm/v0.25.1/docker/Dockerfile"
+  - "https://github.com/vllm-project/guidellm/releases/tag/v0.7.1"
+  - "https://pypi.org/project/guidellm/0.7.1/"
+  - "https://huggingface.co/Qwen/Qwen3-0.6B"
+  - "https://github.com/prometheus/prometheus/releases/tag/v3.13.1"
+  - "https://github.com/grafana/grafana/releases/tag/v13.1.0"

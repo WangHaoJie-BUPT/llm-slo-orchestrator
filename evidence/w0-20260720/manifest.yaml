@@ -1,0 +1,43 @@
+schemaVersion: 1
+runId: w0-20260720
+evidenceLevel: L0
+recordedAt: "2026-07-20T21:48:15+08:00"
+purpose: "environment, version, interface, and command-contract freeze"
+
+repository:
+  branch: main
+  commit: uncommitted-initial-skeleton
+  dirty: true
+  note: "replace with the initial W0 commit SHA in the follow-up evidence commit"
+
+environment:
+  versionsLock: versions.lock.yaml
+  ubuntuPath: "E:\\WSL\\Ubuntu"
+  dockerDataPath: "E:\\DockerData"
+  gpuContainerValidated: true
+  kindClusterValidated: true
+  kindSmokeClusterCleaned: true
+
+checks:
+  gofmt: passed
+  goVet: passed
+  unitTests: passed
+  raceTests: passed
+  build: passed
+  versionsLockAudit: passed
+  repositoryLayoutAudit: passed
+  strictPolicyValidation: passed
+  composeConfig: passed
+
+claims:
+  allowed:
+    - "local WSL2, Docker, GPU-container, and kind paths are operational"
+    - "W0 interfaces, strict policy parsing, tests, and build are reproducible"
+  forbidden:
+    - "vLLM has served the selected model"
+    - "routing improves latency, goodput, or utilization"
+    - "single-GPU results generalize to production or multi-endpoint serving"
+
+cleanup:
+  unusedUbuntuDistributionRemoved: true
+  temporaryKindClustersRemaining: 0
