@@ -56,3 +56,9 @@ make e2e-gpu
 The Compose service sets Hugging Face and Transformers offline modes. It cannot
 silently replace the pinned snapshot with a network download. Stop it with
 `make gpu-down` when the GPU is needed for other work.
+
+Docker Desktop's WSL GPU mapping does not expose the CUDA Unified Virtual
+Addressing capability required by vLLM 0.25.1's V2 model runner. The Compose
+service therefore sets the image's documented `VLLM_USE_V2_MODEL_RUNNER=0`
+compatibility switch. The vLLM version, image digest, CUDA runtime, model, and
+OpenAI API surface remain unchanged.
