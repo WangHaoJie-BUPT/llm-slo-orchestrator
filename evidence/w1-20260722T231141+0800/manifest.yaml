@@ -1,0 +1,32 @@
+schemaVersion: 1
+runId: "w1-20260722T231141+0800"
+evidenceLevel: L2
+startedAt: "2026-07-22T15:11:41.584Z"
+endedAt: "2026-07-22T15:12:08.841Z"
+repository:
+  branch: "main"
+  commit: "5b6a85dbdc1d6798dadeb49bd6f79f41aa3ae41d"
+  dirtyAtStart: false
+versionsLock:
+  path: "versions.lock.yaml"
+  sha256: "b8a2224d8c74ab83abf1e8b5f968cd53de8862582b91e2a7e6c8e94957c2799f"
+runtime:
+  image: "docker.1ms.run/vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  imageId: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  containerId: "db015a9158e1661b5cbfa7362fc4f6b8d91d9fba57e3d874da6eaa034f0b1e0c"
+  model: "Qwen/Qwen3-0.6B"
+  modelRevision: "c1899de289a04d12100db370d81485cdf75e47ca"
+  modelWeightSha256: "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+hardware:
+  nvidiaSmi: "NVIDIA GeForce RTX 5070 Ti, 16303, 596.21"
+scenario:
+  name: "w1-single-endpoint-smoke"
+  seed: 20260720
+  baseUrl: "http://127.0.0.1:8000"
+checks:
+  health: true
+  metrics: true
+  nonStreaming: true
+  streaming: true
+cleanup:
+  serviceRetainedForLocalUse: true

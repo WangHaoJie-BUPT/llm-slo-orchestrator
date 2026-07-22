@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-Status: W0 candidate freeze, 2026-07-20.
+Status: W1 single-endpoint runtime validated, 2026-07-22.
 
 ## Validated Host Path
 
@@ -19,27 +19,28 @@ Status: W0 candidate freeze, 2026-07-20.
 
 | Component | Pin | Compatibility basis | Runtime status |
 | --- | --- | --- | --- |
-| vLLM | 0.25.1 | official image uses CUDA 13.0.2 and Python 3.12 | pending W1 |
-| GPU architecture | `sm_120` | vLLM Dockerfile includes architecture 12.0 | source-validated |
-| Model | Qwen/Qwen3-0.6B | vLLM >=0.8.5 documented by model author | pending W1 |
-| Model revision | `c1899de289a04d12100db370d81485cdf75e47ca` | read-only mirror metadata | revalidate on download |
+| vLLM | 0.25.1 | fixed linux/amd64 image digest, CUDA 13.0.2 | W1 smoke validated |
+| GPU architecture | `sm_120` | image build target plus real RTX 5070 Ti run | W1 smoke validated |
+| Model | Qwen/Qwen3-0.6B | real non-streaming and streaming requests | W1 smoke validated |
+| Model revision | `c1899de289a04d12100db370d81485cdf75e47ca` | downloaded weight size and SHA-256 | validated |
 | GuideLLM | 0.7.1 | Python >=3.10,<4.0; host Python 3.12 | pending W1 |
 
-The table distinguishes source compatibility from runtime evidence. An `sm_120`
-build target is necessary but not sufficient proof that every kernel used by the
-selected model runs correctly. W1 must still complete a streaming request,
-`/health`, `/metrics`, and a manifest-backed smoke run.
+The W1 run completed `/health`, `/metrics`, non-streaming, and streaming requests
+with the pinned model and image. Docker Desktop's WSL GPU mapping did not expose
+UVA, so vLLM's documented `VLLM_USE_V2_MODEL_RUNNER=0` switch was required. This
+validates the exercised single-endpoint path, not every vLLM kernel or workload.
 
 ## Network Constraint
 
-Direct Docker Hub resolution is unreliable on the current network. W0 uses
-explicit `docker.m.daocloud.io` references and verifies the upstream digest. This
-does not authorize mutable tags. Every executable image in a run manifest must
-include a platform-specific digest.
+Direct Docker Hub resolution is unreliable on the current network. W0 used
+`docker.m.daocloud.io`; W1 used `docker.1ms.run` after DaoCloud rate limiting.
+Both references are verified against upstream content digests. This does not
+authorize mutable tags. Every executable image in a run manifest must include a
+platform-specific digest.
 
-Hugging Face is not directly reachable. Model download tooling must use a declared
-mirror, request the immutable revision above, and verify the downloaded weight
-hash before the first GPU run.
+Hugging Face is not directly reachable. W1 used the declared mirror, requested
+the immutable revision above, and verified the downloaded weight hash before the
+first GPU run.
 
 ## Not Required
 
@@ -48,4 +49,3 @@ hash before the first GPU run.
   the container and the Windows NVIDIA driver is exposed through WSL.
 - A second Docker Engine inside Ubuntu is prohibited while Docker Desktop is the
   selected engine; two daemons would create ambiguous images, sockets, and cleanup.
-

@@ -4,9 +4,9 @@ SLO-aware routing and performance engineering for self-hosted vLLM on Kubernetes
 
 ## Status
 
-W0 environment and contract freeze is committed. W1 adds a digest-pinned local
-vLLM service and evidence-producing single-endpoint smoke path. Runtime validation
-remains pending until the generated W1 manifest records a successful GPU run.
+W0 environment and contract freeze is committed. The W1 digest-pinned vLLM
+single-endpoint path is runtime-validated on the local RTX 5070 Ti, including
+health, metrics, non-streaming, and streaming OpenAI-compatible requests.
 
 ## Scope
 
@@ -74,7 +74,7 @@ when reproducing another run.
 
 ## Evidence Boundary
 
-Until `make e2e-gpu` runs a pinned model on a real accelerator, this repository
-only demonstrates control-plane correctness, interfaces, deployment contracts,
-and environment reproducibility. See
+The completed W1 smoke demonstrates a real, pinned single-endpoint inference
+path. It does not establish a capacity curve, comparative performance, routing
+improvement, or production generalization. See
 [`docs/adr/0001-scope-and-evidence-boundary.md`](docs/adr/0001-scope-and-evidence-boundary.md).

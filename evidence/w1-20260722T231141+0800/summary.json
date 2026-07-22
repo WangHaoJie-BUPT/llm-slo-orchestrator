@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "health": true,
+    "metrics": true,
+    "non_streaming": true,
+    "streaming": true
+  },
+  "evidence_level": "L2",
+  "health_body_bytes": 0,
+  "metrics_body_bytes": 46615,
+  "non_streaming_total_ms": 25529.45,
+  "run_id": "w1-20260722T231141+0800",
+  "status": "passed",
+  "stream_event_count": 5,
+  "stream_first_token_ms": 34.62,
+  "stream_total_ms": 42.456
+}
