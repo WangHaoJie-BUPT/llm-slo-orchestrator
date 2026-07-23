@@ -1,7 +1,7 @@
 schemaVersion: 1
 frozenAt: "2026-07-20"
-validatedAt: "2026-07-22"
-status: w1-runtime-smoke-validated
+validatedAt: "2026-07-24"
+status: w1-capacity-calibrated
 
 host:
   os: "Windows 11 Pro 25H2 build 26200.8875"
@@ -64,7 +64,7 @@ inference:
     wheelSha256: "ab40c007105c66010565b5ce113a341ef7f668e5515964cdb70a574f5eb1201d"
     torch: "2.9.1+cpu"
     requirementsLock: "loadgen/requirements.lock"
-    verification: "environment validated; W1 capacity run pending"
+    verification: "passed W1 smoke and 0.5-16 requests/second exploratory capacity run"
 
 observability:
   prometheus:

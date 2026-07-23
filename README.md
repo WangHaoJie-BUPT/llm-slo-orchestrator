@@ -6,7 +6,8 @@ SLO-aware routing and performance engineering for self-hosted vLLM on Kubernetes
 
 W0 environment and contract freeze is committed. The W1 digest-pinned vLLM
 single-endpoint path is runtime-validated on the local RTX 5070 Ti, including
-health, metrics, non-streaming, and streaming OpenAI-compatible requests.
+health, metrics, OpenAI-compatible streaming, GuideLLM smoke, and an exploratory
+0.5-16 requests/second capacity curve.
 
 ## Scope
 
@@ -91,7 +92,7 @@ manifest, and a compact summary are written below `evidence/w1-capacity-*`.
 
 ## Evidence Boundary
 
-The completed W1 smoke demonstrates a real, pinned single-endpoint inference
-path. It does not establish a capacity curve, comparative performance, routing
-improvement, or production generalization. See
+The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint
+inference path over the tested workload range. They do not identify saturation,
+compare routing policies, or establish production generalization. See
 [`docs/adr/0001-scope-and-evidence-boundary.md`](docs/adr/0001-scope-and-evidence-boundary.md).

@@ -37,5 +37,6 @@ same image, CUDA runtime, model, and API path to complete successfully.
 ## Evidence Boundary
 
 This run validates one local endpoint and the exercised API paths. GuideLLM load
-generation, capacity curves, routing policies, fault campaigns, Kubernetes, and
+generation and capacity calibration were completed later in
+`w1-guidellm-capacity.md`. Routing policies, fault campaigns, Kubernetes, and
 comparative performance claims remain out of scope for this smoke.

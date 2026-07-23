@@ -14,6 +14,7 @@ REQUIRED_PATHS = (
     "docs/compatibility-matrix.md",
     "docs/operations/slo.md",
     "docs/reports/w0-environment-freeze.md",
+    "docs/reports/w1-guidellm-capacity.md",
     "evidence/README.md",
     "evidence/w0-20260720/manifest.yaml",
     "evidence/w0-20260720/summary.json",

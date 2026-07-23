@@ -1,6 +1,6 @@
 # Initial SLO Contract
 
-Status: definition only. No target has been validated on the selected hardware.
+Status: W1 exploratory calibration completed on the selected local hardware.
 
 ## User Metrics
 
@@ -18,6 +18,11 @@ test targets. W1 calibration may revise them. Reports must identify the model,
 hardware, prompt/output buckets, arrival process, sample count, and confidence
 interval.
 
+The W1 GuideLLM run met both candidate objectives at every tested constant-rate
+point from 0.5 through 16 requests/second for approximately 128 input and 64
+output tokens. The run did not reach saturation, so 16 requests/second is the
+highest validated test point, not an estimated maximum capacity.
+
 ## Measurement Rules
 
 - Client timestamps are the user-latency source of truth.
@@ -25,4 +30,3 @@ interval.
 - Warm-up, failed requests, 429, cancellation, and lost events are reported.
 - Prometheus labels cannot contain request IDs, prompts, tenant IDs, or endpoint
   instance IDs with unbounded cardinality.
-

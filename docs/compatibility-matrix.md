@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-Status: W1 single-endpoint runtime validated, 2026-07-22.
+Status: W1 single-endpoint capacity calibrated, 2026-07-24.
 
 ## Validated Host Path
 
@@ -23,12 +23,13 @@ Status: W1 single-endpoint runtime validated, 2026-07-22.
 | GPU architecture | `sm_120` | image build target plus real RTX 5070 Ti run | W1 smoke validated |
 | Model | Qwen/Qwen3-0.6B | real non-streaming and streaming requests | W1 smoke validated |
 | Model revision | `c1899de289a04d12100db370d81485cdf75e47ca` | downloaded weight size and SHA-256 | validated |
-| GuideLLM | 0.7.1 | Python >=3.10,<4.0; host Python 3.12 | pending W1 |
+| GuideLLM | 0.7.1 | locked Python 3.12 environment, CPU-only torch 2.9.1 | W1 calibrated |
 
-The W1 run completed `/health`, `/metrics`, non-streaming, and streaming requests
-with the pinned model and image. Docker Desktop's WSL GPU mapping did not expose
-UVA, so vLLM's documented `VLLM_USE_V2_MODEL_RUNNER=0` switch was required. This
-validates the exercised single-endpoint path, not every vLLM kernel or workload.
+The W1 runs completed `/health`, `/metrics`, non-streaming, streaming, a 10-request
+GuideLLM smoke, and constant-rate points from 0.5 through 16 requests/second.
+Docker Desktop's WSL GPU mapping did not expose UVA, so vLLM's documented
+`VLLM_USE_V2_MODEL_RUNNER=0` switch was required. This validates the exercised
+single-endpoint path, not every vLLM kernel or workload.
 
 ## Network Constraint
 

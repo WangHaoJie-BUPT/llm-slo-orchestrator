@@ -1,0 +1,30 @@
+schemaVersion: 1
+runId: "w1-capacity-20260724T011155+0800"
+evidenceLevel: L2
+startedAt: "2026-07-23T17:11:56.155Z"
+endedAt: "2026-07-23T17:18:36.202Z"
+repository:
+  branch: "main"
+  commit: "07313ffb502c25dbad3b2a3400eee99aedec8223"
+  dirtyAtStart: false
+inputs:
+  versionsLockSha256: "47622928ac169c64e5f36e989b235db50fb222b43020d6af22157a55b3b1016a"
+  loadgenLockSha256: "b88d3a2971eb1af533a64bbf605d899642b78657e6dc5024b9f7f87ae79c9d61"
+  scenarioSha256: "36a8a199957f53dc25951ff800310cd9c32f866c57bcca3a1f9ab2f19a1bd041"
+runtime:
+  imageId: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  expectedImageDigest: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  model: "Qwen/Qwen3-0.6B"
+  modelRevision: "c1899de289a04d12100db370d81485cdf75e47ca"
+  modelWeightSha256: "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+  containerId: "db015a9158e1661b5cbfa7362fc4f6b8d91d9fba57e3d874da6eaa034f0b1e0c"
+  nvidiaSmi: "NVIDIA GeForce RTX 5070 Ti, 16303, 596.21"
+loadgen:
+  guidellm: "guidellm version: 0.7.1"
+  python: "Python 3.12.3"
+checks:
+  smoke: true
+  capacityCurve: true
+  zeroRequestErrors: true
+cleanup:
+  serviceRetainedForLocalUse: true
