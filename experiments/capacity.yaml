@@ -1,0 +1,20 @@
+schemaVersion: 1
+name: w1-guidellm-capacity
+seed: 20260720
+model: qwen3-0.6b
+tokenizerPath: /path/to/Qwen3-0.6B-c1899de
+request:
+  inputTokens: 128
+  outputTokens: 64
+smoke:
+  ratePerSecond: 0.2
+  count: 10
+capacity:
+  ratesPerSecond: [0.5, 1, 2, 4, 8, 16]
+  requestsPerRate: 20
+  warmupFraction: 0.1
+  cooldownFraction: 0.1
+objectives:
+  ttftP95Ms: 800
+  tpotP95Ms: 80
+evidenceLevel: L2

@@ -62,7 +62,9 @@ inference:
     version: "0.7.1"
     pythonRequirement: ">=3.10,<4.0"
     wheelSha256: "ab40c007105c66010565b5ce113a341ef7f668e5515964cdb70a574f5eb1201d"
-    verification: "pending W1 loadgen environment"
+    torch: "2.9.1+cpu"
+    requirementsLock: "loadgen/requirements.lock"
+    verification: "environment validated; W1 capacity run pending"
 
 observability:
   prometheus:

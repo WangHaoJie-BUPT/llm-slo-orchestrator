@@ -22,6 +22,10 @@ REQUIRED_PATHS = (
     "internal/clock/clock.go",
     "internal/config/config.go",
     "internal/picker/picker.go",
+    "experiments/capacity.yaml",
+    "hack/verify_loadgen.py",
+    "hack/w1_guidellm.py",
+    "loadgen/requirements.lock",
     "versions.lock.yaml",
 )
 

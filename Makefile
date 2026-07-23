@@ -5,10 +5,13 @@ COMPOSE_FILE ?= deploy/compose/compose.yaml
 MODEL_DIR ?= /path/to/Qwen3-0.6B-c1899de
 VLLM_BASE_URL ?= http://127.0.0.1:8000
 W1_EVIDENCE_DIR ?= evidence/w1-$(shell date +%Y%m%dT%H%M%S%z)
+LOADGEN_PYTHON ?= .venv/bin/python
+W1_BENCHMARK_EVIDENCE_DIR ?= evidence/w1-capacity-$(shell date +%Y%m%dT%H%M%S%z)
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
 .PHONY: fmt fmt-check lint test test-race build verify verify-versions verify-layout
-.PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model e2e-fake e2e-gpu benchmark report
+.PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
+.PHONY: e2e-fake e2e-gpu benchmark benchmark-w1 report
 .PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
 
 fmt:
@@ -62,7 +65,15 @@ gpu-down:
 e2e-gpu: gpu-up
 	$(PYTHON) hack/w1_smoke.py --base-url $(VLLM_BASE_URL) --model qwen3-0.6b --evidence-dir $(W1_EVIDENCE_DIR)
 
-e2e-fake benchmark report fault-smoke kind-up kind-down cloud-clean-check:
+verify-loadgen:
+	$(LOADGEN_PYTHON) hack/verify_loadgen.py
+
+benchmark: benchmark-w1
+
+benchmark-w1: gpu-up verify-loadgen
+	$(LOADGEN_PYTHON) hack/w1_guidellm.py --base-url $(VLLM_BASE_URL) --scenario experiments/capacity.yaml --evidence-dir $(W1_BENCHMARK_EVIDENCE_DIR)
+
+e2e-fake report fault-smoke kind-up kind-down cloud-clean-check:
 	$(PYTHON) hack/not_implemented.py $@
 
 clean:

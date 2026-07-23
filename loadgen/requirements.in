@@ -1,2 +1,5 @@
-guidellm==0.7.1
+--index-url https://pypi.tuna.tsinghua.edu.cn/simple
+--extra-index-url https://download.pytorch.org/whl/cpu
 
+guidellm==0.7.1
+torch==2.9.1+cpu

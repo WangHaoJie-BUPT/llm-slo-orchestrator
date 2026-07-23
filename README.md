@@ -72,6 +72,23 @@ container-log, manifest, and summary evidence under a timestamped `evidence/w1-*
 directory. Override `MODEL_DIR`, `VLLM_BASE_URL`, or `W1_EVIDENCE_DIR` explicitly
 when reproducing another run.
 
+## W1 GuideLLM Calibration
+
+GuideLLM runs in an isolated local environment. Its exact working dependency set
+is recorded in `loadgen/requirements.lock`; the load generator uses CPU-only
+PyTorch and does not compete for the inference GPU.
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r loadgen/requirements.lock
+make verify-loadgen
+make benchmark
+```
+
+`make benchmark` runs the declared low-rate smoke and exploratory capacity points
+from `experiments/capacity.yaml`. Raw GuideLLM JSON/CSV, client logs, vLLM metrics,
+manifest, and a compact summary are written below `evidence/w1-capacity-*`.
+
 ## Evidence Boundary
 
 The completed W1 smoke demonstrates a real, pinned single-endpoint inference
