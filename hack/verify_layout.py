@@ -18,6 +18,7 @@ REQUIRED_PATHS = (
     "docs/reports/w0-environment-freeze.md",
     "docs/reports/w1-guidellm-capacity.md",
     "docs/reports/w2-fake-router.md",
+    "docs/reports/w2-real-router.md",
     "evidence/README.md",
     "evidence/w0-20260720/manifest.yaml",
     "evidence/w0-20260720/summary.json",

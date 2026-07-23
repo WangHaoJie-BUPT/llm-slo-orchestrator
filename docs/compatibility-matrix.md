@@ -25,6 +25,15 @@ Status: W1 single-endpoint capacity calibrated, 2026-07-24.
 | Model revision | `c1899de289a04d12100db370d81485cdf75e47ca` | downloaded weight size and SHA-256 | validated |
 | GuideLLM | 0.7.1 | locked Python 3.12 environment, CPU-only torch 2.9.1 | W1 calibrated |
 
+## Application Path
+
+| Component | Evidence | Status |
+| --- | --- | --- |
+| Standalone Go router | command-level two-fake-backend HTTP/SSE test | L1 validated |
+| Router to vLLM | real Qwen3-0.6B non-streaming and SSE requests | L2 validated |
+| Router metrics | bounded endpoint/status counters | validated |
+| Kubernetes deployment | no manifests or cluster run yet | pending W2 |
+
 The W1 runs completed `/health`, `/metrics`, non-streaming, streaming, a 10-request
 GuideLLM smoke, and constant-rate points from 0.5 through 16 requests/second.
 Docker Desktop's WSL GPU mapping did not expose UVA, so vLLM's documented

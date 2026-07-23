@@ -8,7 +8,8 @@ W0 environment and contract freeze is committed. The W1 digest-pinned vLLM
 single-endpoint path is runtime-validated on the local RTX 5070 Ti, including
 health, metrics, OpenAI-compatible streaming, GuideLLM smoke, and an exploratory
 0.5-16 requests/second capacity curve. W2 now includes a working standalone
-streaming router and deterministic two-backend L1 test.
+streaming router, deterministic two-backend L1 test, and a real vLLM L2 router
+path.
 
 ## Scope
 

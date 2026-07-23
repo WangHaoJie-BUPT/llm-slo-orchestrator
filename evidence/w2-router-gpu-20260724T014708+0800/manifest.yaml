@@ -1,0 +1,29 @@
+schemaVersion: 1
+runId: "w2-router-gpu-20260724T014708+0800"
+evidenceLevel: L2
+startedAt: "2026-07-23T17:47:08.214Z"
+endedAt: "2026-07-23T17:47:09.637Z"
+repository:
+  branch: "main"
+  commit: "3a50bca224869fa6d1d19c4668706886da0d2c09"
+  dirtyAtStart: false
+inputs:
+  policySha256: "c8d0f739c6bf551ec3fbc739e96ae0fe8a36057d597b98780f40ba1c7df9bc40"
+  routerBinarySha256: "a125b3c6333f4d44b5fcdb52d58ce45af4f5657fe7fef4cf9448daba630d74bd"
+runtime:
+  imageId: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  expectedImageDigest: "sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+  model: "Qwen/Qwen3-0.6B"
+  modelRevision: "c1899de289a04d12100db370d81485cdf75e47ca"
+  modelWeightSha256: "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+  containerId: "db015a9158e1661b5cbfa7362fc4f6b8d91d9fba57e3d874da6eaa034f0b1e0c"
+checks:
+  routerHealth: true
+  backendHealth: true
+  selectedEndpointHeader: true
+  nonStreaming: true
+  streaming: true
+  routerMetrics: true
+cleanup:
+  routerStopped: true
+  vllmRetainedForLocalUse: true

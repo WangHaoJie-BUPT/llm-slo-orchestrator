@@ -1,0 +1,21 @@
+{
+  "checks": {
+    "backend_health": true,
+    "endpoint_header": true,
+    "non_streaming": true,
+    "router_health": true,
+    "router_metrics": true,
+    "streaming": true
+  },
+  "claim_boundary": "single real endpoint routing validation; not a policy comparison",
+  "evidence_level": "L2",
+  "router_stopped": true,
+  "run_id": "w2-router-gpu-20260724T014708+0800",
+  "selected_endpoint": "vllm",
+  "status": "passed",
+  "timings": {
+    "non_streaming_total_ms": 211.647,
+    "streaming_total_ms": 99.458
+  },
+  "vllm_retained": true
+}
