@@ -29,6 +29,7 @@ REQUIRED_PATHS = (
     "internal/router/handler.go",
     "experiments/capacity.yaml",
     "hack/e2e_fake.py",
+    "hack/e2e_router_gpu.py",
     "hack/verify_loadgen.py",
     "hack/w1_guidellm.py",
     "loadgen/requirements.lock",

@@ -116,6 +116,13 @@ The router exposes `/health`, `/metrics`, and the selected endpoint in the
 `X-LLM-Endpoint` response header. Request bodies and generated content are not
 written to router logs.
 
+With the pinned vLLM service running, validate the same path against the real
+model endpoint:
+
+```bash
+make e2e-router-gpu
+```
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

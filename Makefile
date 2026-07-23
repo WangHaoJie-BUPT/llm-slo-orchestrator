@@ -8,11 +8,12 @@ W1_EVIDENCE_DIR ?= evidence/w1-$(shell date +%Y%m%dT%H%M%S%z)
 LOADGEN_PYTHON ?= .venv/bin/python
 W1_BENCHMARK_EVIDENCE_DIR ?= evidence/w1-capacity-$(shell date +%Y%m%dT%H%M%S%z)
 W2_FAKE_EVIDENCE_DIR ?= evidence/w2-fake-$(shell date +%Y%m%dT%H%M%S%z)
+W2_GPU_EVIDENCE_DIR ?= evidence/w2-router-gpu-$(shell date +%Y%m%dT%H%M%S%z)
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
 .PHONY: fmt fmt-check lint test test-race build verify verify-versions verify-layout
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
-.PHONY: e2e-fake e2e-gpu benchmark benchmark-w1 report
+.PHONY: e2e-fake e2e-gpu e2e-router-gpu benchmark benchmark-w1 report
 .PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
 
 fmt:
@@ -69,6 +70,9 @@ e2e-gpu: gpu-up
 
 e2e-fake: build
 	$(PYTHON) hack/e2e_fake.py --router $(BIN_DIR)/router --backend $(BIN_DIR)/fake-backend --evidence-dir $(W2_FAKE_EVIDENCE_DIR)
+
+e2e-router-gpu: gpu-up build
+	$(PYTHON) hack/e2e_router_gpu.py --router $(BIN_DIR)/router --backend-url $(VLLM_BASE_URL) --evidence-dir $(W2_GPU_EVIDENCE_DIR)
 
 verify-loadgen:
 	$(LOADGEN_PYTHON) hack/verify_loadgen.py
