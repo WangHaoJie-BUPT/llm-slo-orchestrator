@@ -90,6 +90,31 @@ make benchmark
 from `experiments/capacity.yaml`. Raw GuideLLM JSON/CSV, client logs, vLLM metrics,
 manifest, and a compact summary are written below `evidence/w1-capacity-*`.
 
+## W2 Standalone Router
+
+The standalone router accepts repeated backend targets and forwards OpenAI HTTP
+and SSE responses without buffering. The command-level fake test launches two
+deterministic backends, verifies round-robin selection and metrics, and cleans up
+all child processes:
+
+```bash
+make e2e-fake
+```
+
+For an interactive local run:
+
+```bash
+make build
+./bin/fake-backend --listen 127.0.0.1:18001 --id fake-a
+./bin/router --listen 127.0.0.1:8080 \
+  --config config/e2e-fake-policy.yaml \
+  --backend fake-a=http://127.0.0.1:18001
+```
+
+The router exposes `/health`, `/metrics`, and the selected endpoint in the
+`X-LLM-Endpoint` response header. Request bodies and generated content are not
+written to router logs.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

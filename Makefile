@@ -7,6 +7,7 @@ VLLM_BASE_URL ?= http://127.0.0.1:8000
 W1_EVIDENCE_DIR ?= evidence/w1-$(shell date +%Y%m%dT%H%M%S%z)
 LOADGEN_PYTHON ?= .venv/bin/python
 W1_BENCHMARK_EVIDENCE_DIR ?= evidence/w1-capacity-$(shell date +%Y%m%dT%H%M%S%z)
+W2_FAKE_EVIDENCE_DIR ?= evidence/w2-fake-$(shell date +%Y%m%dT%H%M%S%z)
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
 .PHONY: fmt fmt-check lint test test-race build verify verify-versions verify-layout
@@ -33,6 +34,7 @@ build:
 	mkdir -p $(BIN_DIR)
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/router ./cmd/router
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/profile-controller ./cmd/profile-controller
+	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/fake-backend ./cmd/fake-backend
 
 verify-versions:
 	$(PYTHON) hack/verify_versions.py
@@ -65,6 +67,9 @@ gpu-down:
 e2e-gpu: gpu-up
 	$(PYTHON) hack/w1_smoke.py --base-url $(VLLM_BASE_URL) --model qwen3-0.6b --evidence-dir $(W1_EVIDENCE_DIR)
 
+e2e-fake: build
+	$(PYTHON) hack/e2e_fake.py --router $(BIN_DIR)/router --backend $(BIN_DIR)/fake-backend --evidence-dir $(W2_FAKE_EVIDENCE_DIR)
+
 verify-loadgen:
 	$(LOADGEN_PYTHON) hack/verify_loadgen.py
 
@@ -73,7 +78,7 @@ benchmark: benchmark-w1
 benchmark-w1: gpu-up verify-loadgen
 	$(LOADGEN_PYTHON) hack/w1_guidellm.py --base-url $(VLLM_BASE_URL) --scenario experiments/capacity.yaml --evidence-dir $(W1_BENCHMARK_EVIDENCE_DIR)
 
-e2e-fake report fault-smoke kind-up kind-down cloud-clean-check:
+report fault-smoke kind-up kind-down cloud-clean-check:
 	$(PYTHON) hack/not_implemented.py $@
 
 clean:

@@ -5,8 +5,10 @@ import sys
 
 REQUIRED_PATHS = (
     ".github/workflows/ci.yml",
+    "cmd/fake-backend/main.go",
     "cmd/router/main.go",
     "cmd/profile-controller/main.go",
+    "config/e2e-fake-policy.yaml",
     "config/example-policy.yaml",
     "deploy/compose/compose.yaml",
     "docs/adr/0001-scope-and-evidence-boundary.md",
@@ -23,7 +25,9 @@ REQUIRED_PATHS = (
     "internal/clock/clock.go",
     "internal/config/config.go",
     "internal/picker/picker.go",
+    "internal/router/handler.go",
     "experiments/capacity.yaml",
+    "hack/e2e_fake.py",
     "hack/verify_loadgen.py",
     "hack/w1_guidellm.py",
     "loadgen/requirements.lock",
