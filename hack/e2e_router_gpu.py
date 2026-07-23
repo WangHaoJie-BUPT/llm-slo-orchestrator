@@ -42,6 +42,20 @@ def completion(base_url: str, stream: bool) -> tuple[int, dict[str, str], bytes,
         return response.status, headers, body, elapsed_ms
 
 
+def streamed_content(body: bytes) -> str:
+    parts: list[str] = []
+    for line in body.splitlines():
+        if not line.startswith(b"data: ") or line == b"data: [DONE]":
+            continue
+        event = json.loads(line.removeprefix(b"data: "))
+        choices = event.get("choices") or []
+        if choices:
+            content = choices[0].get("delta", {}).get("content")
+            if content:
+                parts.append(content)
+    return "".join(parts)
+
+
 def write_manifest(path: Path, values: dict[str, Any]) -> None:
     lines = [
         "schemaVersion: 1",
@@ -148,7 +162,11 @@ def main() -> int:
         stream_status, stream_headers, stream_body, stream_ms = completion(router_url, True)
         timings["streaming_total_ms"] = round(stream_ms, 3)
         checks["endpoint_header"] = checks["endpoint_header"] and stream_headers.get("x-llm-endpoint") == "vllm"
-        checks["streaming"] = stream_status == 200 and b"W2_OK" in stream_body and b"data: [DONE]" in stream_body
+        checks["streaming"] = (
+            stream_status == 200
+            and "W2_OK" in streamed_content(stream_body)
+            and b"data: [DONE]" in stream_body
+        )
         (raw_dir / "stream.txt").write_bytes(stream_body)
 
         with urlopen(router_url + "/metrics", timeout=30) as response:
