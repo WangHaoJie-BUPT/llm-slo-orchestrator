@@ -1,7 +1,7 @@
 schemaVersion: 1
 frozenAt: "2026-07-20"
 validatedAt: "2026-07-24"
-status: w1-capacity-calibrated
+status: w2-router-l1-validated
 
 host:
   os: "Windows 11 Pro 25H2 build 26200.8875"

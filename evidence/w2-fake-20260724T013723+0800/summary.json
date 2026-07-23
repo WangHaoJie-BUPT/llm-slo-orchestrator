@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "health": true,
+    "metrics": true,
+    "non_streaming": true,
+    "round_robin": true,
+    "streaming": true
+  },
+  "evidence_level": "L1",
+  "processes_stopped": true,
+  "run_id": "w2-fake-20260724T013723+0800",
+  "selected_endpoints": [
+    "fake-a",
+    "fake-b",
+    "fake-a"
+  ],
+  "status": "passed"
+}

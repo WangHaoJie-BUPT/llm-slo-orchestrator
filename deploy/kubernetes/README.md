@@ -1,7 +1,6 @@
 # Kubernetes Deployment
 
-The W0 repository intentionally contains no controller, CRD, or Gateway resources.
-W2 will add the standalone router and fake backend deployment after the same
-contracts pass in-process tests. Gateway API Inference Extension resources belong
-to the enhancement milestone.
-
+The standalone router and deterministic fake backend now pass command-level L1
+tests outside Kubernetes. Kubernetes Deployment and Service resources remain the
+next W2 step; no controller, CRD, or Gateway resources are present yet. Gateway
+API Inference Extension resources belong to the enhancement milestone.

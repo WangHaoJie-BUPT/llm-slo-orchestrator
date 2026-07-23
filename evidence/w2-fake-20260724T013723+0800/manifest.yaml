@@ -1,0 +1,21 @@
+schemaVersion: 1
+runId: "w2-fake-20260724T013723+0800"
+evidenceLevel: L1
+startedAt: "2026-07-23T17:37:24.004Z"
+endedAt: "2026-07-23T17:37:24.784Z"
+repository:
+  branch: "main"
+  commit: "485c0a044e2cdf0905aac0f5ca466318de03b149"
+  dirtyAtStart: false
+inputs:
+  policySha256: "4ca654287cae079c57a06701e2bb3e5993654cc9a5e1a53d2d00e28b428a44f6"
+  routerBinarySha256: "a125b3c6333f4d44b5fcdb52d58ce45af4f5657fe7fef4cf9448daba630d74bd"
+  backendBinarySha256: "04d8cb8ef3587ab150abc615a05920d36db6a1e40bffe7c45c78d05d025909c6"
+checks:
+  health: true
+  roundRobin: true
+  nonStreaming: true
+  streaming: true
+  metrics: true
+cleanup:
+  processesStopped: true
