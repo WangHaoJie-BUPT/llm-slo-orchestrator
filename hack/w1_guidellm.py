@@ -74,19 +74,21 @@ def summarize(report_path: Path, objectives: dict[str, float]) -> list[dict[str,
         metrics = benchmark["metrics"]
         totals = metrics["request_totals"]
         duration = float(benchmark["duration"])
-        profile = benchmark["config"]["profile"]
+        strategy = benchmark["config"]["strategy"]
         ttft = successful(metrics, "time_to_first_token_ms")
         tpot = successful(metrics, "time_per_output_token_ms")
         latency = successful(metrics, "request_latency")
         output_tokens = successful(metrics, "output_token_count")
         row = {
-            "strategy": benchmark["config"]["strategy"]["type_"],
-            "requested_rate": profile.get("rate"),
+            "strategy": strategy["type_"],
+            "requested_rate": strategy.get("rate"),
             "duration_seconds": round(duration, 3),
             "successful": totals["successful"],
             "errored": totals["errored"],
             "incomplete": totals["incomplete"],
-            "achieved_requests_per_second": round(totals["successful"] / duration, 3),
+            "achieved_requests_per_second": round(
+                successful(metrics, "requests_per_second")["mean"], 3
+            ),
             "output_tokens_per_second": round(output_tokens["total_sum"] / duration, 3),
             "request_latency_p50_ms": round(latency["percentiles"]["p50"] * 1000, 3),
             "request_latency_p95_ms": round(latency["percentiles"]["p95"] * 1000, 3),
@@ -113,7 +115,7 @@ def guidellm_command(
     output_tokens: int,
     seed: int,
     profile: str,
-    request_count: int,
+    constraint: str,
     json_path: Path,
     csv_path: Path,
 ) -> list[str]:
@@ -125,7 +127,7 @@ def guidellm_command(
         "--profile",
         profile,
         "--constraint",
-        f"kind=max_requests,count={request_count}",
+        constraint,
         "--constraint",
         "kind=max_errors,count=1",
         "--tokenizer",
@@ -237,7 +239,7 @@ def main() -> int:
     smoke_command = guidellm_command(
         **common,
         profile=f"kind=constant,rate={smoke['ratePerSecond']}",
-        request_count=smoke["count"],
+        constraint=f"kind=max_requests,count={smoke['count']}",
         json_path=raw_dir / "smoke.json",
         csv_path=raw_dir / "smoke.csv",
     )
@@ -249,7 +251,7 @@ def main() -> int:
             f"kind=constant,rate={capacity['ratesPerSecond'][0]},"
             f"warmup={capacity['warmupFraction']},cooldown={capacity['cooldownFraction']}"
         ),
-        request_count=capacity["requestsPerRate"],
+        constraint=f"kind=max_duration,seconds={capacity['durationSecondsPerRate']}",
         json_path=raw_dir / "capacity.json",
         csv_path=raw_dir / "capacity.csv",
     )
@@ -268,7 +270,9 @@ def main() -> int:
     smoke_rows = summarize(raw_dir / "smoke.json", objectives)
     capacity_rows = summarize(raw_dir / "capacity.json", objectives)
     smoke_passed = len(smoke_rows) == 1 and smoke_rows[0]["successful"] == smoke["count"]
-    capacity_passed = len(capacity_rows) == len(capacity["ratesPerSecond"])
+    capacity_passed = len(capacity_rows) == len(capacity["ratesPerSecond"]) and all(
+        row["successful"] > 0 for row in capacity_rows
+    )
     zero_errors = all(row["errored"] == 0 and row["incomplete"] == 0 for row in smoke_rows + capacity_rows)
     safe_rates = [row["requested_rate"] for row in capacity_rows if row["candidate_slo_met"]]
     summary = {

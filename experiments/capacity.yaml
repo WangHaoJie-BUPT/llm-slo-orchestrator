@@ -11,7 +11,7 @@ smoke:
   count: 10
 capacity:
   ratesPerSecond: [0.5, 1, 2, 4, 8, 16]
-  requestsPerRate: 20
+  durationSecondsPerRate: 20
   warmupFraction: 0.1
   cooldownFraction: 0.1
 objectives:
