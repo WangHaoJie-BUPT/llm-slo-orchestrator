@@ -15,7 +15,7 @@ ROUTER_IMAGE ?= llm-slo-router:w2-local
 FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
-.PHONY: fmt fmt-check lint test test-race build static-build container-images verify verify-versions verify-layout
+.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout report-check
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
 .PHONY: e2e-fake e2e-gpu e2e-router-gpu e2e-kind benchmark benchmark-w1 report
 .PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
@@ -31,6 +31,9 @@ lint:
 
 test:
 	$(GO) test ./...
+
+test-python:
+	$(PYTHON) -m unittest discover -s hack -p 'test_*.py'
 
 test-race:
 	$(GO) test -race ./...
@@ -56,7 +59,7 @@ verify-versions:
 verify-layout:
 	$(PYTHON) hack/verify_layout.py
 
-verify: fmt-check lint test test-race build verify-versions verify-layout
+verify: fmt-check lint test test-python test-race build verify-versions verify-layout report-check
 
 compose-config:
 	MODEL_DIR=$(MODEL_DIR) docker compose -f $(COMPOSE_FILE) --profile observability --profile gpu config --quiet
@@ -98,7 +101,13 @@ benchmark: benchmark-w1
 benchmark-w1: gpu-up verify-loadgen
 	$(LOADGEN_PYTHON) hack/w1_guidellm.py --base-url $(VLLM_BASE_URL) --scenario experiments/capacity.yaml --evidence-dir $(W1_BENCHMARK_EVIDENCE_DIR)
 
-report fault-smoke kind-up kind-down cloud-clean-check:
+report:
+	$(PYTHON) hack/generate_report.py
+
+report-check:
+	$(PYTHON) hack/generate_report.py --check
+
+fault-smoke kind-up kind-down cloud-clean-check:
 	$(PYTHON) hack/not_implemented.py $@
 
 clean:
