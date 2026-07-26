@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-slo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: router-policy
+  namespace: llm-slo
+data:
+  policy.yaml: |
+    apiVersion: inference.bupt.dev/v1alpha1
+    kind: InferenceSLOPolicy
+    metadata:
+      name: w2-kind-round-robin
+    spec:
+      model: qwen3-0.6b-pinned
+      objectives:
+        ttftP95Ms: 800
+        tpotP95Ms: 80
+        availability: 0.995
+      routing:
+        strategy: round-robin
+        weights: {queue: 35, ttftRisk: 35, prefix: 20, utilization: 10}
+        metricFreshnessSeconds: 15
+      admission:
+        maxPredictedTTFTMs: 1200
+        lowPriorityAction: reject
+        retryAfterSeconds: 2
+      fairness:
+        tenantBurst: 8
+        tenantRatePerSecond: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-a
+  namespace: llm-slo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: fake-a}
+  template:
+    metadata:
+      labels: {app: fake-a}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: backend
+          image: llm-slo-fake-backend:w2-local
+          imagePullPolicy: Never
+          args: ["--listen", "0.0.0.0:8000", "--id", "fake-a", "--base-delay", "2ms", "--token-delay", "2ms"]
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 1}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 5}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 250m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fake-a
+  namespace: llm-slo
+spec:
+  selector: {app: fake-a}
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-b
+  namespace: llm-slo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: fake-b}
+  template:
+    metadata:
+      labels: {app: fake-b}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: backend
+          image: llm-slo-fake-backend:w2-local
+          imagePullPolicy: Never
+          args: ["--listen", "0.0.0.0:8000", "--id", "fake-b", "--base-delay", "2ms", "--token-delay", "2ms"]
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 1}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 5}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 250m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fake-b
+  namespace: llm-slo
+spec:
+  selector: {app: fake-b}
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router
+  namespace: llm-slo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: router}
+  template:
+    metadata:
+      labels: {app: router}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: router
+          image: llm-slo-router:w2-local
+          imagePullPolicy: Never
+          args:
+            - --listen
+            - 0.0.0.0:8080
+            - --config
+            - /config/policy.yaml
+            - --backend
+            - fake-a=http://fake-a:8000
+            - --backend
+            - fake-b=http://fake-b:8000
+          ports:
+            - {name: http, containerPort: 8080}
+          volumeMounts:
+            - {name: policy, mountPath: /config, readOnly: true}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 1}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 5}
+          resources:
+            requests: {cpu: 20m, memory: 24Mi}
+            limits: {cpu: 500m, memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: {drop: ["ALL"]}
+      volumes:
+        - name: policy
+          configMap: {name: router-policy}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: router
+  namespace: llm-slo
+spec:
+  selector: {app: router}
+  ports:
+    - {name: http, port: 8080, targetPort: http}

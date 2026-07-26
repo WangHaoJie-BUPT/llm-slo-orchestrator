@@ -1,6 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 BIN_DIR ?= bin
+DIST_DIR ?= dist
 COMPOSE_FILE ?= deploy/compose/compose.yaml
 MODEL_DIR ?= /path/to/Qwen3-0.6B-c1899de
 VLLM_BASE_URL ?= http://127.0.0.1:8000
@@ -9,11 +10,14 @@ LOADGEN_PYTHON ?= .venv/bin/python
 W1_BENCHMARK_EVIDENCE_DIR ?= evidence/w1-capacity-$(shell date +%Y%m%dT%H%M%S%z)
 W2_FAKE_EVIDENCE_DIR ?= evidence/w2-fake-$(shell date +%Y%m%dT%H%M%S%z)
 W2_GPU_EVIDENCE_DIR ?= evidence/w2-router-gpu-$(shell date +%Y%m%dT%H%M%S%z)
+W2_KIND_EVIDENCE_DIR ?= evidence/w2-kind-$(shell date +%Y%m%dT%H%M%S%z)
+ROUTER_IMAGE ?= llm-slo-router:w2-local
+FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
-.PHONY: fmt fmt-check lint test test-race build verify verify-versions verify-layout
+.PHONY: fmt fmt-check lint test test-race build static-build container-images verify verify-versions verify-layout
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
-.PHONY: e2e-fake e2e-gpu e2e-router-gpu benchmark benchmark-w1 report
+.PHONY: e2e-fake e2e-gpu e2e-router-gpu e2e-kind benchmark benchmark-w1 report
 .PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
 
 fmt:
@@ -36,6 +40,15 @@ build:
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/router ./cmd/router
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/profile-controller ./cmd/profile-controller
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/fake-backend ./cmd/fake-backend
+
+static-build:
+	mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -buildvcs=false -trimpath -o $(DIST_DIR)/router ./cmd/router
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -buildvcs=false -trimpath -o $(DIST_DIR)/fake-backend ./cmd/fake-backend
+
+container-images: static-build
+	docker build -f deploy/docker/router.Dockerfile -t $(ROUTER_IMAGE) .
+	docker build -f deploy/docker/fake-backend.Dockerfile -t $(FAKE_BACKEND_IMAGE) .
 
 verify-versions:
 	$(PYTHON) hack/verify_versions.py
@@ -73,6 +86,9 @@ e2e-fake: build
 
 e2e-router-gpu: gpu-up build
 	$(PYTHON) hack/e2e_router_gpu.py --router $(BIN_DIR)/router --backend-url $(VLLM_BASE_URL) --evidence-dir $(W2_GPU_EVIDENCE_DIR)
+
+e2e-kind: container-images
+	$(PYTHON) hack/e2e_kind.py --router-image $(ROUTER_IMAGE) --backend-image $(FAKE_BACKEND_IMAGE) --evidence-dir $(W2_KIND_EVIDENCE_DIR)
 
 verify-loadgen:
 	$(LOADGEN_PYTHON) hack/verify_loadgen.py
