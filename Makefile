@@ -11,6 +11,7 @@ W1_BENCHMARK_EVIDENCE_DIR ?= evidence/w1-capacity-$(shell date +%Y%m%dT%H%M%S%z)
 W2_FAKE_EVIDENCE_DIR ?= evidence/w2-fake-$(shell date +%Y%m%dT%H%M%S%z)
 W2_GPU_EVIDENCE_DIR ?= evidence/w2-router-gpu-$(shell date +%Y%m%dT%H%M%S%z)
 W2_KIND_EVIDENCE_DIR ?= evidence/w2-kind-$(shell date +%Y%m%dT%H%M%S%z)
+W3_FAULT_EVIDENCE_DIR ?= evidence/w3-fault-$(shell date +%Y%m%dT%H%M%S%z)
 ROUTER_IMAGE ?= llm-slo-router:w2-local
 FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
@@ -107,7 +108,10 @@ report:
 report-check:
 	$(PYTHON) hack/generate_report.py --check
 
-fault-smoke kind-up kind-down cloud-clean-check:
+fault-smoke: build
+	$(PYTHON) hack/fault_smoke.py --router $(BIN_DIR)/router --backend $(BIN_DIR)/fake-backend --evidence-dir $(W3_FAULT_EVIDENCE_DIR)
+
+kind-up kind-down cloud-clean-check:
 	$(PYTHON) hack/not_implemented.py $@
 
 clean:

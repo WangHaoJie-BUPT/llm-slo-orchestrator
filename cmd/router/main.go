@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"inference.bupt.dev/llm-slo-orchestrator/internal/backend"
 	"inference.bupt.dev/llm-slo-orchestrator/internal/config"
 	"inference.bupt.dev/llm-slo-orchestrator/internal/picker"
 	server "inference.bupt.dev/llm-slo-orchestrator/internal/router"
@@ -35,6 +36,10 @@ func main() {
 	checkConfig := flag.String("check-config", "", "check that a configuration file is readable")
 	configPath := flag.String("config", "config/example-policy.yaml", "routing policy path")
 	listenAddress := flag.String("listen", "127.0.0.1:8080", "HTTP listen address")
+	healthInterval := flag.Duration("health-interval", 2*time.Second, "backend health probe interval")
+	healthTimeout := flag.Duration("health-timeout", time.Second, "backend health probe timeout")
+	healthFailureThreshold := flag.Int("health-failure-threshold", 2, "consecutive failures before removal")
+	healthSuccessThreshold := flag.Int("health-success-threshold", 1, "consecutive successes before recovery")
 	var backends backendFlags
 	flag.Var(&backends, "backend", "backend target in id=http://host:port form; repeat for multiple targets")
 	flag.Parse()
@@ -72,6 +77,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("create router: %v", err)
 	}
+	healthMonitor := backend.HealthMonitor{
+		Interval:         *healthInterval,
+		Timeout:          *healthTimeout,
+		FailureThreshold: *healthFailureThreshold,
+		SuccessThreshold: *healthSuccessThreshold,
+	}
+	if err := healthMonitor.Validate(); err != nil {
+		log.Fatalf("configure health monitor: %v", err)
+	}
 
 	httpServer := &http.Server{
 		Addr:              *listenAddress,
@@ -81,6 +95,24 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	healthTargets := make([]backend.HealthTarget, 0, len(targets))
+	for _, target := range targets {
+		healthTargets = append(healthTargets, backend.HealthTarget{
+			ID:               target.ID,
+			BaseURL:          target.BaseURL,
+			InitiallyHealthy: target.Healthy,
+		})
+	}
+	go func() {
+		err := healthMonitor.Run(ctx, healthTargets, func(update backend.HealthUpdate) {
+			if updateErr := handler.SetEndpointHealth(update.ID, update.Healthy, update.CheckedAt); updateErr != nil {
+				logger.Printf("health update error: %v", updateErr)
+			}
+		})
+		if err != nil && ctx.Err() == nil {
+			logger.Printf("health monitor stopped: %v", err)
+		}
+	}()
 	go func() {
 		<-ctx.Done()
 		shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)

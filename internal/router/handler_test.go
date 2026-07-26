@@ -112,6 +112,57 @@ func TestHandlerAppliesBatchAdmission(t *testing.T) {
 	}
 }
 
+func TestHandlerUpdatesEndpointHealthAndMetrics(t *testing.T) {
+	backend := newFakeBackend(t, "dynamic")
+	handler := newTestHandler(t, "round-robin", []TargetConfig{
+		{ID: "dynamic", BaseURL: backend.URL, Healthy: true, Ready: true},
+	})
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	checkedAt := time.Now().Add(-10 * time.Millisecond)
+	if err := handler.SetEndpointHealth("dynamic", false, checkedAt); err != nil {
+		t.Fatalf("SetEndpointHealth() error = %v", err)
+	}
+	response := postCompletion(t, server.URL, false)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status while unhealthy = %d", response.StatusCode)
+	}
+
+	metricsResponse, err := http.Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatalf("GET /metrics: %v", err)
+	}
+	metricsBody, _ := io.ReadAll(metricsResponse.Body)
+	metricsResponse.Body.Close()
+	if !bytes.Contains(metricsBody, []byte(`router_backend_healthy{endpoint="dynamic"} 0`)) {
+		t.Fatalf("metrics missing unhealthy gauge:\n%s", metricsBody)
+	}
+	if !bytes.Contains(metricsBody, []byte(`router_backend_health_check_age_seconds{endpoint="dynamic"}`)) {
+		t.Fatalf("metrics missing health age:\n%s", metricsBody)
+	}
+
+	if err := handler.SetEndpointHealth("dynamic", true, time.Now()); err != nil {
+		t.Fatalf("SetEndpointHealth() recovery error = %v", err)
+	}
+	recovered := postCompletion(t, server.URL, false)
+	defer recovered.Body.Close()
+	if recovered.StatusCode != http.StatusOK {
+		t.Fatalf("status after recovery = %d", recovered.StatusCode)
+	}
+}
+
+func TestHandlerRejectsUnknownHealthTarget(t *testing.T) {
+	backend := newFakeBackend(t, "known")
+	handler := newTestHandler(t, "round-robin", []TargetConfig{
+		{ID: "known", BaseURL: backend.URL, Healthy: true, Ready: true},
+	})
+	if err := handler.SetEndpointHealth("missing", false, time.Now()); err == nil {
+		t.Fatal("expected unknown endpoint error")
+	}
+}
+
 func newTestHandler(t *testing.T, strategy string, targets []TargetConfig) *Handler {
 	t.Helper()
 	policy := testPolicy(strategy)

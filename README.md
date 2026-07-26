@@ -140,6 +140,24 @@ raw logs and responses locally, and deletes the temporary cluster before it
 returns. This is Kubernetes wiring evidence using fake backends, not a
 real-model performance or routing-improvement claim.
 
+## W3 Backend Resilience
+
+The router probes each backend `/health` endpoint independently. Consecutive
+failure and recovery thresholds prevent a single probe result from flapping the
+routing set. Current health and check age are exported as bounded-label
+Prometheus gauges. Run the deterministic process failure and recovery campaign
+with:
+
+```bash
+make fault-smoke
+```
+
+The campaign stops one fake backend, verifies that traffic continues through the
+survivor without 5xx responses, restarts the backend, and verifies re-entry into
+the round-robin set. Override the production-facing defaults with the router
+flags `--health-interval`, `--health-timeout`,
+`--health-failure-threshold`, and `--health-success-threshold`.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

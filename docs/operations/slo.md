@@ -30,3 +30,16 @@ highest validated test point, not an estimated maximum capacity.
 - Warm-up, failed requests, 429, cancellation, and lost events are reported.
 - Prometheus labels cannot contain request IDs, prompts, tenant IDs, or endpoint
   instance IDs with unbounded cardinality.
+
+## Backend Health Gates
+
+The router performs independent HTTP `GET /health` probes for every configured
+backend. The default interval is two seconds, timeout is one second, failure
+threshold is two consecutive checks, and recovery threshold is one successful
+check. A thresholded unhealthy endpoint is removed before picker evaluation and
+is added back only after its recovery threshold is met.
+
+`router_backend_healthy{endpoint}` exposes the current binary state and
+`router_backend_health_check_age_seconds{endpoint}` exposes probe freshness.
+Endpoint labels come only from startup configuration; request IDs, tenant data,
+and model content are never used as metric labels.

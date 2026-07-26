@@ -50,6 +50,9 @@ type target struct {
 	config      TargetConfig
 	proxy       *httputil.ReverseProxy
 	outstanding atomic.Int64
+	healthy     atomic.Bool
+	ready       atomic.Bool
+	checkedAt   atomic.Int64
 }
 
 type metrics struct {
@@ -100,6 +103,8 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 			writeJSONError(writer, http.StatusBadGateway, "backend request failed")
 		}
 		item := &target{config: config, proxy: proxy}
+		item.healthy.Store(config.Healthy)
+		item.ready.Store(config.Ready)
 		handler.targets[config.ID] = item
 		handler.ordered = append(handler.ordered, item)
 	}
@@ -107,6 +112,22 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		return handler.ordered[i].config.ID < handler.ordered[j].config.ID
 	})
 	return handler, nil
+}
+
+func (h *Handler) SetEndpointHealth(endpointID string, healthy bool, checkedAt time.Time) error {
+	selected, exists := h.targets[endpointID]
+	if !exists {
+		return fmt.Errorf("unknown backend target %q", endpointID)
+	}
+	if checkedAt.IsZero() {
+		checkedAt = time.Now()
+	}
+	previous := selected.healthy.Swap(healthy)
+	selected.checkedAt.Store(checkedAt.UnixNano())
+	if previous != healthy && h.logger != nil {
+		h.logger.Printf("endpoint=%s healthy=%t", endpointID, healthy)
+	}
+	return nil
 }
 
 func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -226,8 +247,8 @@ func (h *Handler) snapshot(generation uint64) api.EndpointSnapshot {
 		endpoints = append(endpoints, api.Endpoint{
 			ID:             item.config.ID,
 			Model:          item.config.Model,
-			Healthy:        item.config.Healthy,
-			Ready:          item.config.Ready,
+			Healthy:        item.healthy.Load(),
+			Ready:          item.ready.Load(),
 			Running:        item.config.Running,
 			Waiting:        item.config.Waiting,
 			Outstanding:    int(outstanding),
@@ -264,6 +285,39 @@ func (h *Handler) serveMetrics(writer http.ResponseWriter) {
 		)
 	}
 	h.metrics.mu.Unlock()
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_healthy Whether the latest thresholded backend health state is healthy.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_healthy gauge\n")
+	for _, item := range h.ordered {
+		healthy := 0
+		if item.healthy.Load() {
+			healthy = 1
+		}
+		_, _ = fmt.Fprintf(
+			writer,
+			"router_backend_healthy{endpoint=%q} %d\n",
+			item.config.ID,
+			healthy,
+		)
+	}
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_health_check_age_seconds Seconds since the latest backend health check.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_health_check_age_seconds gauge\n")
+	now := time.Now()
+	for _, item := range h.ordered {
+		checkedAt := item.checkedAt.Load()
+		age := 0.0
+		if checkedAt > 0 {
+			age = now.Sub(time.Unix(0, checkedAt)).Seconds()
+			if age < 0 {
+				age = 0
+			}
+		}
+		_, _ = fmt.Fprintf(
+			writer,
+			"router_backend_health_check_age_seconds{endpoint=%q} %.6f\n",
+			item.config.ID,
+			age,
+		)
+	}
 	_, _ = fmt.Fprintf(writer, "# HELP router_outstanding_requests Requests currently assigned to a backend.\n")
 	_, _ = fmt.Fprintf(writer, "# TYPE router_outstanding_requests gauge\n")
 	for _, item := range h.ordered {

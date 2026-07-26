@@ -37,6 +37,7 @@ REQUIRED_PATHS = (
     "hack/e2e_fake.py",
     "hack/e2e_kind.py",
     "hack/e2e_router_gpu.py",
+    "hack/fault_smoke.py",
     "hack/generate_report.py",
     "hack/test_generate_report.py",
     "hack/verify_loadgen.py",

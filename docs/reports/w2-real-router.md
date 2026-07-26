@@ -33,5 +33,6 @@ The measured request totals were 211.647 ms for non-streaming and 99.458 ms for
 streaming completion. They are smoke timings, not a router-overhead benchmark.
 Only one real endpoint was available, so this run does not compare picker
 policies or prove routing improvement. Kubernetes deployment is covered separately
-by the W2 kind report. Active health probing, metric ingestion, and fault campaigns
-remain later W3 work.
+by the W2 kind report. Active health probing and a deterministic fake-backend
+fault campaign were added later in W3; live vLLM metric ingestion and real
+accelerator fault evidence remain future work.
