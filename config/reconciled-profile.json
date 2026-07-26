@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "model": "qwen3-0.6b-pinned",
+  "policy_name": "online-chat",
+  "policy_generation": 14470337430261028126,
+  "policy_strategy": "slo-prefix-affinity",
+  "profile_name": "qwen3-0.6b-rtx5070ti",
+  "profile_generation": 11064868237379675825,
+  "capacity_points": 1,
+  "max_safe_qps": 16,
+  "source_evidence": "evidence/w1-capacity-20260724T011155+0800/manifest.yaml"
+}

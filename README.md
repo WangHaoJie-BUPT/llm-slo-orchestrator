@@ -158,6 +158,20 @@ the round-robin set. Override the production-facing defaults with the router
 flags `--health-interval`, `--health-timeout`,
 `--health-failure-threshold`, and `--health-success-threshold`.
 
+## W3 Capacity Profile Reconciliation
+
+The strict `ModelBackendProfile` binds the pinned model, engine image, hardware,
+engine settings, tested capacity bucket, and its W1 source evidence. Generate the
+deterministic policy/profile generations and reconciliation state with:
+
+```bash
+make profile-reconcile
+```
+
+`make verify` checks that `config/reconciled-profile.json` is current. The
+recorded 16 requests/second point is the highest short-run rate tested for the
+declared workload, not a saturation estimate or production guarantee.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint
