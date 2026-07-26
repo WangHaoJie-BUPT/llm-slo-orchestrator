@@ -1,0 +1,26 @@
+schemaVersion: 1
+runId: "w3-fault-20260727T011604+0800"
+evidenceLevel: L1
+startedAt: "2026-07-26T17:16:04.390Z"
+endedAt: "2026-07-26T17:16:05.259Z"
+repository:
+  branch: "main"
+  commit: "a9609f9aa68f82bd733d8a300e0002beef1f7574"
+  dirtyAtStart: false
+inputs:
+  policySha256: "4ca654287cae079c57a06701e2bb3e5993654cc9a5e1a53d2d00e28b428a44f6"
+  routerBinarySha256: "5328abd81e28c543f109614e627d7cc6edaf5840f66841c3f3cf9026bc90b650"
+  backendBinarySha256: "04d8cb8ef3587ab150abc615a05920d36db6a1e40bffe7c45c78d05d025909c6"
+  healthInterval: "50ms"
+  healthTimeout: "25ms"
+  failureThreshold: 2
+  successThreshold: 2
+checks:
+  initialHealthy: true
+  failureDetected: true
+  survivingTraffic: true
+  recoveryDetected: true
+  recoveredTraffic: true
+  healthMetrics: true
+cleanup:
+  processesStopped: true

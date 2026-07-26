@@ -23,6 +23,7 @@ REQUIRED_PATHS = (
     "docs/reports/w2-fake-router.md",
     "docs/reports/w2-kind-router.md",
     "docs/reports/w2-real-router.md",
+    "docs/reports/w3-fault-recovery.md",
     "docs/reports/generated-status.md",
     "evidence/README.md",
     "evidence/w0-20260720/manifest.yaml",

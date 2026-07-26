@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-Status: W2 Kubernetes fake topology validated, 2026-07-26.
+Status: W3 deterministic backend failure and recovery validated, 2026-07-27.
 
 ## Validated Host Path
 
@@ -33,6 +33,7 @@ Status: W2 Kubernetes fake topology validated, 2026-07-26.
 | Router to vLLM | real Qwen3-0.6B non-streaming and SSE requests | L2 validated |
 | Router metrics | bounded endpoint/status counters | validated |
 | Kubernetes deployment | kind `v1.36.1` temporary cluster, router plus two fake backends | L1 validated |
+| Active backend health | thresholded failure removal and recovery with two fake processes | L1 validated |
 
 The W1 runs completed `/health`, `/metrics`, non-streaming, streaming, a 10-request
 GuideLLM smoke, and constant-rate points from 0.5 through 16 requests/second.

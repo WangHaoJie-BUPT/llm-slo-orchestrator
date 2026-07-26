@@ -5,8 +5,8 @@ This file is generated from tracked `evidence/*/summary.json` files. Run
 
 ## Summary
 
-- Runs: 6
-- Passed: 6
+- Runs: 7
+- Passed: 7
 - Failed: 0
 - Highest evidence level represented: L2
 
@@ -20,6 +20,7 @@ This file is generated from tracked `evidence/*/summary.json` files. Run
 | [`w2-fake-20260724T013723+0800`](../../evidence/w2-fake-20260724T013723+0800/summary.json) | L1 | passed | 5 | 0 |
 | [`w2-kind-20260726T182748+0800`](../../evidence/w2-kind-20260726T182748+0800/summary.json) | L1 | passed | 7 | 0 |
 | [`w2-router-gpu-20260724T014708+0800`](../../evidence/w2-router-gpu-20260724T014708+0800/summary.json) | L2 | passed | 6 | 0 |
+| [`w3-fault-20260727T011604+0800`](../../evidence/w3-fault-20260727T011604+0800/summary.json) | L1 | passed | 6 | 0 |
 
 ## Claim Boundary
 

@@ -1,0 +1,28 @@
+{
+  "checks": {
+    "failure_detected": true,
+    "health_metrics": true,
+    "initial_healthy": true,
+    "recovered_traffic": true,
+    "recovery_detected": true,
+    "surviving_traffic": true
+  },
+  "claim_boundary": "deterministic process fault with fake backends; not real accelerator resilience evidence",
+  "evidence_level": "L1",
+  "failure": null,
+  "processes_stopped": true,
+  "run_id": "w3-fault-20260727T011604+0800",
+  "selected_after_recovery": [
+    "fake-a",
+    "fake-b",
+    "fake-a",
+    "fake-b"
+  ],
+  "selected_during_failure": [
+    "fake-b",
+    "fake-b",
+    "fake-b",
+    "fake-b"
+  ],
+  "status": "passed"
+}
