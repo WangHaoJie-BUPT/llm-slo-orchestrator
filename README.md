@@ -9,7 +9,7 @@ single-endpoint path is runtime-validated on the local RTX 5070 Ti, including
 health, metrics, OpenAI-compatible streaming, GuideLLM smoke, and an exploratory
 0.5-16 requests/second capacity curve. W2 now includes a working standalone
 streaming router, deterministic two-backend L1 test, and a real vLLM L2 router
-path.
+path. The temporary kind deployment is also validated with two fake backends.
 
 ## Scope
 
@@ -49,8 +49,9 @@ go run ./cmd/router --version
 go run ./cmd/router --check-config config/example-policy.yaml
 ```
 
-Commands for later milestones already exist and fail explicitly until their
-implementation lands:
+Core and later-milestone command contracts are kept in the Makefile. The W2
+commands below are runnable on the validated host; `report` remains a later
+report-generation milestone:
 
 ```bash
 make e2e-fake
@@ -123,6 +124,21 @@ model endpoint:
 ```bash
 make e2e-router-gpu
 ```
+
+## W2 Kubernetes Demo
+
+Build the local static images, create a temporary kind cluster with the pinned
+node image, deploy the router and two fake backends, and run the complete HTTP,
+SSE, metrics, and cleanup checks:
+
+```bash
+make e2e-kind
+```
+
+The command writes a manifest and summary under `evidence/w2-kind-*`, retains
+raw logs and responses locally, and deletes the temporary cluster before it
+returns. This is Kubernetes wiring evidence using fake backends, not a
+real-model performance or routing-improvement claim.
 
 ## Evidence Boundary
 

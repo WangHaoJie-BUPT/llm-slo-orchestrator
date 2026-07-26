@@ -1,0 +1,31 @@
+schemaVersion: 1
+runId: "w2-kind-20260726T182748+0800"
+evidenceLevel: L1
+startedAt: "2026-07-26T10:27:48.583Z"
+endedAt: "2026-07-26T10:28:27.785Z"
+repository:
+  branch: "main"
+  commit: "060c2005475bffff3c3a3abe5938af2fd1dc6705"
+  dirtyAtStart: false
+inputs:
+  kubernetesManifestSha256: "1ec4fb47779b8f3cae670962e1bf042f3234f1a03f1aaba2effa1b252ab1b58f"
+  routerImage: "llm-slo-router:w2-local"
+  routerImageId: "sha256:1b5eedfe3308928c06546d872064f625372462b16f604195a58f3ce8e2b8e381"
+  backendImage: "llm-slo-fake-backend:w2-local"
+  backendImageId: "sha256:380161dbb2b79320336c86b45d1828c1c6220cbc5d0159360669769447f81350"
+  kindNodeImage: "docker.m.daocloud.io/kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+runtime:
+  clusterName: "w2-20260726182748-67a50b"
+  kindVersion: "kind v0.32.0 go1.26.3 linux/amd64"
+  kubernetesVersion: "v1.36.1"
+checks:
+  clusterReady: true
+  deploymentsReady: true
+  routerHealth: true
+  roundRobin: true
+  nonStreaming: true
+  streaming: true
+  metrics: true
+cleanup:
+  portForwardStopped: true
+  clusterDeleted: true

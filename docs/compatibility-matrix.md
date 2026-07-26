@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-Status: W1 single-endpoint capacity calibrated, 2026-07-24.
+Status: W2 Kubernetes fake topology validated, 2026-07-26.
 
 ## Validated Host Path
 
@@ -32,13 +32,15 @@ Status: W1 single-endpoint capacity calibrated, 2026-07-24.
 | Standalone Go router | command-level two-fake-backend HTTP/SSE test | L1 validated |
 | Router to vLLM | real Qwen3-0.6B non-streaming and SSE requests | L2 validated |
 | Router metrics | bounded endpoint/status counters | validated |
-| Kubernetes deployment | no manifests or cluster run yet | pending W2 |
+| Kubernetes deployment | kind `v1.36.1` temporary cluster, router plus two fake backends | L1 validated |
 
 The W1 runs completed `/health`, `/metrics`, non-streaming, streaming, a 10-request
 GuideLLM smoke, and constant-rate points from 0.5 through 16 requests/second.
 Docker Desktop's WSL GPU mapping did not expose UVA, so vLLM's documented
 `VLLM_USE_V2_MODEL_RUNNER=0` switch was required. This validates the exercised
-single-endpoint path, not every vLLM kernel or workload.
+single-endpoint path, not every vLLM kernel or workload. The W2 kind run validates
+Kubernetes wiring only; it does not add real-model or multi-endpoint performance
+claims.
 
 ## Network Constraint
 

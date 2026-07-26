@@ -1,0 +1,25 @@
+{
+  "checks": {
+    "cluster_ready": true,
+    "deployments_ready": true,
+    "metrics": true,
+    "non_streaming": true,
+    "round_robin": true,
+    "router_health": true,
+    "streaming": true
+  },
+  "claim_boundary": "Kubernetes wiring with fake backends; not real inference or policy improvement evidence",
+  "cluster_deleted": true,
+  "cluster_name": "w2-20260726182748-67a50b",
+  "evidence_level": "L1",
+  "failure": null,
+  "kubernetes_version": "v1.36.1",
+  "port_forward_stopped": true,
+  "run_id": "w2-kind-20260726T182748+0800",
+  "selected_endpoints": [
+    "fake-a",
+    "fake-b",
+    "fake-a"
+  ],
+  "status": "passed"
+}
