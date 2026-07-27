@@ -10,6 +10,9 @@ health, metrics, OpenAI-compatible streaming, GuideLLM smoke, and an exploratory
 0.5-16 requests/second capacity curve. W2 now includes a working standalone
 streaming router, deterministic two-backend L1 test, and a real vLLM L2 router
 path. The temporary kind deployment is also validated with two fake backends.
+W3 adds generated evidence reports, thresholded active backend health, a
+deterministic failure/recovery campaign, and evidence-backed model profile
+reconciliation.
 
 ## Scope
 
@@ -49,9 +52,8 @@ go run ./cmd/router --version
 go run ./cmd/router --check-config config/example-policy.yaml
 ```
 
-Core and later-milestone command contracts are kept in the Makefile. The W2
-commands below are runnable on the validated host; `report` remains a later
-report-generation milestone:
+Core command contracts are kept in the Makefile. These commands are runnable on
+the validated host:
 
 ```bash
 make e2e-fake
