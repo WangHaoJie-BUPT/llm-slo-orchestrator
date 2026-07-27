@@ -56,3 +56,15 @@ Tenant identifiers are limited to 128 bytes and never appear in Prometheus
 labels. `router_admission_total{priority,reason}` records only bounded priority
 and reason values, including `tenant-rate-limit` and
 `predicted-slo-violation`.
+
+## Metrics Freshness
+
+The router collects each backend `/metrics` endpoint outside the request path.
+It adapts vLLM running, waiting, KV-cache usage, and TTFT cumulative counters into
+atomic endpoint state. TTFT uses consecutive sum/count deltas and an EWMA. A
+scrape failure does not refresh the collection timestamp.
+
+Picker snapshots calculate `MetricAge` from the last successful collection. An
+endpoint older than `metricFreshnessSeconds` is excluded even when its health
+probe still succeeds. Collection interval and timeout default to two seconds and
+one second and can be changed with `--metrics-interval` and `--metrics-timeout`.

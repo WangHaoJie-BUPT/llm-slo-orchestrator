@@ -35,6 +35,7 @@ Status: W3 deterministic backend failure and recovery validated, 2026-07-27.
 | Kubernetes deployment | kind `v1.36.1` temporary cluster, router plus two fake backends | L1 validated |
 | Active backend health | thresholded failure removal and recovery with two fake processes | L1 validated |
 | Grafana dashboard | provisioned datasource, dashboard API, and PromQL runtime parsing | validated |
+| Dynamic endpoint metrics | fake and real-vLLM running/waiting/KV/TTFT collection with freshness gate | L1/L2 validated |
 
 The W1 runs completed `/health`, `/metrics`, non-streaming, streaming, a 10-request
 GuideLLM smoke, and constant-rate points from 0.5 through 16 requests/second.

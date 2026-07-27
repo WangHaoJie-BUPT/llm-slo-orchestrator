@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -56,6 +57,11 @@ type target struct {
 	healthy     atomic.Bool
 	ready       atomic.Bool
 	checkedAt   atomic.Int64
+	running     atomic.Int64
+	waiting     atomic.Int64
+	kvUsage     atomic.Uint64
+	ttftEWMA    atomic.Int64
+	metricsAt   atomic.Int64
 }
 
 type metrics struct {
@@ -119,6 +125,11 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		item := &target{config: config, proxy: proxy}
 		item.healthy.Store(config.Healthy)
 		item.ready.Store(config.Ready)
+		item.running.Store(int64(config.Running))
+		item.waiting.Store(int64(config.Waiting))
+		item.kvUsage.Store(math.Float64bits(config.KVUsage))
+		item.ttftEWMA.Store(int64(config.TTFTEWMA))
+		item.metricsAt.Store(time.Now().UnixNano())
 		handler.targets[config.ID] = item
 		handler.ordered = append(handler.ordered, item)
 	}
@@ -126,6 +137,34 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		return handler.ordered[i].config.ID < handler.ordered[j].config.ID
 	})
 	return handler, nil
+}
+
+type EndpointMetrics struct {
+	Running, Waiting int
+	KVUsage          float64
+	TTFTEWMA         time.Duration
+	CollectedAt      time.Time
+}
+
+func (h *Handler) SetEndpointMetrics(endpointID string, update EndpointMetrics) error {
+	selected, exists := h.targets[endpointID]
+	if !exists {
+		return fmt.Errorf("unknown backend target %q", endpointID)
+	}
+	if update.Running < 0 || update.Waiting < 0 || update.KVUsage < 0 || update.KVUsage > 1 {
+		return errors.New("endpoint metrics are invalid")
+	}
+	if update.CollectedAt.IsZero() {
+		update.CollectedAt = time.Now()
+	}
+	selected.running.Store(int64(update.Running))
+	selected.waiting.Store(int64(update.Waiting))
+	selected.kvUsage.Store(math.Float64bits(update.KVUsage))
+	if update.TTFTEWMA > 0 {
+		selected.ttftEWMA.Store(int64(update.TTFTEWMA))
+	}
+	selected.metricsAt.Store(update.CollectedAt.UnixNano())
+	return nil
 }
 
 func (h *Handler) SetEndpointHealth(endpointID string, healthy bool, checkedAt time.Time) error {
@@ -272,16 +311,18 @@ func (h *Handler) snapshot(generation uint64) api.EndpointSnapshot {
 	endpoints := make([]api.Endpoint, 0, len(h.ordered))
 	for _, item := range h.ordered {
 		outstanding := item.outstanding.Load()
+		metricsAt := time.Unix(0, item.metricsAt.Load())
 		endpoints = append(endpoints, api.Endpoint{
 			ID:             item.config.ID,
 			Model:          item.config.Model,
 			Healthy:        item.healthy.Load(),
 			Ready:          item.ready.Load(),
-			Running:        item.config.Running,
-			Waiting:        item.config.Waiting,
+			MetricAge:      time.Since(metricsAt),
+			Running:        int(item.running.Load()),
+			Waiting:        int(item.waiting.Load()),
 			Outstanding:    int(outstanding),
-			KVUsage:        item.config.KVUsage,
-			TTFTEWMA:       item.config.TTFTEWMA,
+			KVUsage:        math.Float64frombits(item.kvUsage.Load()),
+			TTFTEWMA:       time.Duration(item.ttftEWMA.Load()),
 			PrefixAffinity: item.config.PrefixAffinity,
 		})
 	}

@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var version = "w2-dev"
+var version = "w4-dev"
 
 type fakeServer struct {
 	id         string
@@ -80,6 +80,11 @@ func (server *fakeServer) metrics(writer http.ResponseWriter, _ *http.Request) {
 	writer.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	_, _ = fmt.Fprintf(writer, "fake_backend_requests_total{id=%q} %d\n", server.id, server.requests.Load())
 	_, _ = fmt.Fprintf(writer, "fake_backend_active_requests{id=%q} %d\n", server.id, server.active.Load())
+	_, _ = fmt.Fprintf(writer, "vllm:num_requests_running{model_name=%q} %d\n", server.model, server.active.Load())
+	_, _ = fmt.Fprintf(writer, "vllm:num_requests_waiting{model_name=%q} 0\n", server.model)
+	_, _ = fmt.Fprintf(writer, "vllm:kv_cache_usage_perc{model_name=%q} 0\n", server.model)
+	_, _ = fmt.Fprintf(writer, "vllm:time_to_first_token_seconds_sum{model_name=%q} 0\n", server.model)
+	_, _ = fmt.Fprintf(writer, "vllm:time_to_first_token_seconds_count{model_name=%q} 0\n", server.model)
 }
 
 func (server *fakeServer) models(writer http.ResponseWriter, _ *http.Request) {

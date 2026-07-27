@@ -194,6 +194,13 @@ the policy's per-tenant token bucket before picker evaluation and returns an
 observable HTTP 429 with `Retry-After` when a tenant exhausts its allowance.
 Tenant state is bounded and tenant identifiers never become metric labels.
 
+## W4 Dynamic Backend Metrics
+
+The router asynchronously collects vLLM running/waiting requests, KV-cache
+usage, and TTFT counters. Only successful scrapes refresh endpoint state; stale
+metrics exclude the endpoint before picker evaluation. The same adapter is used
+by deterministic fake backends and the real pinned vLLM service.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

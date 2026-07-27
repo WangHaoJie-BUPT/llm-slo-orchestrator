@@ -38,6 +38,7 @@ REQUIRED_PATHS = (
     "internal/api/types.go",
     "internal/admission/limiter.go",
     "internal/backend/client.go",
+    "internal/backend/metrics.go",
     "internal/clock/clock.go",
     "internal/config/config.go",
     "internal/picker/picker.go",

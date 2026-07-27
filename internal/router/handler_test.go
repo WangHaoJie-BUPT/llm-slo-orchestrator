@@ -163,6 +163,33 @@ func TestHandlerRejectsUnknownHealthTarget(t *testing.T) {
 	}
 }
 
+func TestHandlerExcludesStaleMetricsAndRecoversOnFreshUpdate(t *testing.T) {
+	backend := newFakeBackend(t, "metrics")
+	handler := newTestHandler(t, "least-queue", []TargetConfig{
+		{ID: "metrics", BaseURL: backend.URL, Healthy: true, Ready: true},
+	})
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+	stale := EndpointMetrics{Running: 1, Waiting: 2, KVUsage: 0.5, CollectedAt: time.Now().Add(-time.Minute)}
+	if err := handler.SetEndpointMetrics("metrics", stale); err != nil {
+		t.Fatal(err)
+	}
+	response := postCompletion(t, server.URL, false)
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("stale metrics status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+	stale.CollectedAt = time.Now()
+	if err := handler.SetEndpointMetrics("metrics", stale); err != nil {
+		t.Fatal(err)
+	}
+	response = postCompletion(t, server.URL, false)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("fresh metrics status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+}
+
 func TestHandlerEnforcesTenantRateLimitWithoutCrossTenantImpact(t *testing.T) {
 	backend := newFakeBackend(t, "fair")
 	policy := testPolicy("round-robin")

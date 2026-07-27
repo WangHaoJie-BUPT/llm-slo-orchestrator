@@ -18,7 +18,7 @@ import (
 	server "inference.bupt.dev/llm-slo-orchestrator/internal/router"
 )
 
-var version = "w2-dev"
+var version = "w4-dev"
 
 type backendFlags []string
 
@@ -40,6 +40,8 @@ func main() {
 	healthTimeout := flag.Duration("health-timeout", time.Second, "backend health probe timeout")
 	healthFailureThreshold := flag.Int("health-failure-threshold", 2, "consecutive failures before removal")
 	healthSuccessThreshold := flag.Int("health-success-threshold", 1, "consecutive successes before recovery")
+	metricsInterval := flag.Duration("metrics-interval", 2*time.Second, "backend metrics collection interval")
+	metricsTimeout := flag.Duration("metrics-timeout", time.Second, "backend metrics collection timeout")
 	var backends backendFlags
 	flag.Var(&backends, "backend", "backend target in id=http://host:port form; repeat for multiple targets")
 	flag.Parse()
@@ -83,6 +85,10 @@ func main() {
 		FailureThreshold: *healthFailureThreshold,
 		SuccessThreshold: *healthSuccessThreshold,
 	}
+	metricsMonitor := backend.MetricsMonitor{Interval: *metricsInterval, Timeout: *metricsTimeout}
+	if *metricsInterval <= 0 || *metricsTimeout <= 0 {
+		log.Fatal("metrics interval and timeout must be positive")
+	}
 	if err := healthMonitor.Validate(); err != nil {
 		log.Fatalf("configure health monitor: %v", err)
 	}
@@ -111,6 +117,20 @@ func main() {
 		})
 		if err != nil && ctx.Err() == nil {
 			logger.Printf("health monitor stopped: %v", err)
+		}
+	}()
+	go func() {
+		err := metricsMonitor.Run(ctx, healthTargets, func(update backend.MetricsUpdate) {
+			updateErr := handler.SetEndpointMetrics(update.ID, server.EndpointMetrics{
+				Running: update.Running, Waiting: update.Waiting, KVUsage: update.KVUsage,
+				TTFTEWMA: update.TTFTEWMA, CollectedAt: update.CollectedAt,
+			})
+			if updateErr != nil {
+				logger.Printf("metrics update error: %v", updateErr)
+			}
+		})
+		if err != nil && ctx.Err() == nil {
+			logger.Printf("metrics monitor stopped: %v", err)
 		}
 	}()
 	go func() {
