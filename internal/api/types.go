@@ -17,6 +17,7 @@ const (
 type Request struct {
 	ID           string
 	Model        string
+	Tenant       string
 	Priority     Priority
 	PromptTokens int
 	PrefixKey    string

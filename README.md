@@ -187,6 +187,13 @@ The dashboard is available at `http://127.0.0.1:3000/d/llm-slo-overview` and
 includes router traffic/failures/health plus vLLM TTFT, TPOT, queue, and KV cache
 views. Provisioning and every PromQL expression are runtime-validated.
 
+## W4 Tenant Admission
+
+Requests may provide `X-Tenant-ID` and `X-Request-Priority`. The router enforces
+the policy's per-tenant token bucket before picker evaluation and returns an
+observable HTTP 429 with `Retry-After` when a tenant exhausts its allowance.
+Tenant state is bounded and tenant identifiers never become metric labels.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

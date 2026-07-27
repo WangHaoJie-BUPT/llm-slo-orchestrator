@@ -17,8 +17,11 @@
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
       "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
       "id": 2,
-      "targets": [{"expr": "sum by (endpoint, code) (rate(router_requests_total{code=~\"5..\"}[5m]))", "legendFormat": "{{endpoint}} {{code}}", "refId": "A"}],
-      "title": "Router 5xx Rate",
+      "targets": [
+        {"expr": "sum by (endpoint, code) (rate(router_requests_total{code=~\"5..\"}[5m]))", "legendFormat": "{{endpoint}} {{code}}", "refId": "A"},
+        {"expr": "sum by (priority, reason) (rate(router_admission_total[5m]))", "legendFormat": "{{priority}} {{reason}}", "refId": "B"}
+      ],
+      "title": "Router Failures and Rejections",
       "type": "timeseries"
     },
     {

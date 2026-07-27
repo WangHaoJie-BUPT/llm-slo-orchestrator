@@ -163,6 +163,50 @@ func TestHandlerRejectsUnknownHealthTarget(t *testing.T) {
 	}
 }
 
+func TestHandlerEnforcesTenantRateLimitWithoutCrossTenantImpact(t *testing.T) {
+	backend := newFakeBackend(t, "fair")
+	policy := testPolicy("round-robin")
+	policy.Fairness.TenantBurst = 2
+	policy.Fairness.TenantRatePerSecond = 0.001
+	selectedPicker, _ := picker.New(policy.Strategy)
+	handler, err := New(policy, selectedPicker, []TargetConfig{
+		{ID: "fair", BaseURL: backend.URL, Healthy: true, Ready: true},
+	}, nil)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	for range 2 {
+		response := postCompletionForTenant(t, server.URL, "tenant-a")
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("burst status = %d", response.StatusCode)
+		}
+		response.Body.Close()
+	}
+	rejected := postCompletionForTenant(t, server.URL, "tenant-a")
+	if rejected.StatusCode != http.StatusTooManyRequests || rejected.Header.Get("Retry-After") == "" {
+		t.Fatalf("rate limited response = %d, Retry-After=%q", rejected.StatusCode, rejected.Header.Get("Retry-After"))
+	}
+	rejected.Body.Close()
+	otherTenant := postCompletionForTenant(t, server.URL, "tenant-b")
+	if otherTenant.StatusCode != http.StatusOK {
+		t.Fatalf("other tenant status = %d", otherTenant.StatusCode)
+	}
+	otherTenant.Body.Close()
+
+	metricsResponse, err := http.Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metricsBody, _ := io.ReadAll(metricsResponse.Body)
+	metricsResponse.Body.Close()
+	if !bytes.Contains(metricsBody, []byte(`router_admission_total{priority="online-normal",reason="tenant-rate-limit"} 1`)) {
+		t.Fatalf("metrics missing tenant rejection:\n%s", metricsBody)
+	}
+}
+
 func newTestHandler(t *testing.T, strategy string, targets []TargetConfig) *Handler {
 	t.Helper()
 	policy := testPolicy(strategy)
@@ -231,6 +275,18 @@ func postCompletion(t *testing.T, baseURL string, stream bool) *http.Response {
 	if !stream {
 		_, _ = io.Copy(io.Discard, response.Body)
 		response.Body.Close()
+	}
+	return response
+}
+
+func postCompletionForTenant(t *testing.T, baseURL, tenant string) *http.Response {
+	t.Helper()
+	request, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/chat/completions", strings.NewReader(`{"model":"model"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Tenant-ID", tenant)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("POST completion: %v", err)
 	}
 	return response
 }

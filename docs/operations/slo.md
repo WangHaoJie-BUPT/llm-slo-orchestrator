@@ -43,3 +43,16 @@ is added back only after its recovery threshold is met.
 `router_backend_health_check_age_seconds{endpoint}` exposes probe freshness.
 Endpoint labels come only from startup configuration; request IDs, tenant data,
 and model content are never used as metric labels.
+
+## Tenant Admission
+
+Every request is assigned to `X-Tenant-ID`, defaulting to `default`. A per-tenant
+token bucket uses `tenantBurst` and `tenantRatePerSecond` from the strict policy.
+Exhaustion returns HTTP 429 with `Retry-After` without consuming backend capacity.
+Buckets are isolated by tenant, capped at 4,096 entries, and idle entries are
+reclaimed before admitting new tenant state.
+
+Tenant identifiers are limited to 128 bytes and never appear in Prometheus
+labels. `router_admission_total{priority,reason}` records only bounded priority
+and reason values, including `tenant-rate-limit` and
+`predicted-slo-violation`.

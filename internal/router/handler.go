@@ -17,7 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"inference.bupt.dev/llm-slo-orchestrator/internal/admission"
 	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
+	"inference.bupt.dev/llm-slo-orchestrator/internal/clock"
 	"inference.bupt.dev/llm-slo-orchestrator/internal/picker"
 )
 
@@ -44,6 +46,7 @@ type Handler struct {
 	logger   *log.Logger
 	sequence atomic.Uint64
 	metrics  metrics
+	limiter  *admission.Limiter
 }
 
 type target struct {
@@ -56,13 +59,19 @@ type target struct {
 }
 
 type metrics struct {
-	mu       sync.Mutex
-	requests map[metricKey]uint64
+	mu         sync.Mutex
+	requests   map[metricKey]uint64
+	admissions map[admissionMetricKey]uint64
 }
 
 type metricKey struct {
 	Endpoint string
 	Code     int
+}
+
+type admissionMetricKey struct {
+	Priority string
+	Reason   string
 }
 
 func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig, logger *log.Logger) (*Handler, error) {
@@ -81,8 +90,13 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		picker:  selectedPicker,
 		targets: make(map[string]*target, len(configs)),
 		logger:  logger,
-		metrics: metrics{requests: make(map[metricKey]uint64)},
+		metrics: metrics{requests: make(map[metricKey]uint64), admissions: make(map[admissionMetricKey]uint64)},
 	}
+	limiter, err := admission.New(policy.Fairness.TenantRatePerSecond, policy.Fairness.TenantBurst, clock.Real{})
+	if err != nil {
+		return nil, fmt.Errorf("create tenant limiter: %w", err)
+	}
+	handler.limiter = limiter
 	for _, config := range configs {
 		if config.ID == "" {
 			return nil, errors.New("backend target ID is required")
@@ -156,6 +170,12 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		writeJSONError(writer, http.StatusBadRequest, err.Error())
 		return
 	}
+	if allowed, retryAfter := h.limiter.Allow(routingRequest.Tenant); !allowed {
+		writer.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Seconds())))
+		h.metrics.recordAdmission(string(routingRequest.Priority), "tenant-rate-limit")
+		writeJSONError(writer, http.StatusTooManyRequests, "tenant rate limit exceeded")
+		return
+	}
 	snapshot := h.snapshot(sequence - 1)
 	decision, err := h.picker.Pick(routingRequest, snapshot, h.policy)
 	if err != nil {
@@ -168,6 +188,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 	if decision.Admission == "reject" {
 		writer.Header().Set("Retry-After", strconv.Itoa(int(h.policy.Admission.RetryAfter.Seconds())))
+		h.metrics.recordAdmission(string(routingRequest.Priority), "predicted-slo-violation")
 		writeJSONError(writer, http.StatusTooManyRequests, "request rejected by admission policy")
 		return
 	}
@@ -212,8 +233,15 @@ func (h *Handler) routingRequest(
 	if priority != api.PriorityOnlineHigh && priority != api.PriorityOnlineNormal && priority != api.PriorityBatchLow {
 		return api.Request{}, fmt.Errorf("unsupported request priority %q", priority)
 	}
+	tenant := request.Header.Get("X-Tenant-ID")
+	if tenant == "" {
+		tenant = "default"
+	}
+	if len(tenant) > 128 {
+		return api.Request{}, errors.New("tenant ID is too long")
+	}
 
-	result := api.Request{ID: requestID, Priority: priority}
+	result := api.Request{ID: requestID, Tenant: tenant, Priority: priority}
 	if deadline, ok := request.Context().Deadline(); ok {
 		result.Deadline = deadline
 	}
@@ -285,6 +313,23 @@ func (h *Handler) serveMetrics(writer http.ResponseWriter) {
 		)
 	}
 	h.metrics.mu.Unlock()
+	_, _ = fmt.Fprintf(writer, "# HELP router_admission_total Requests rejected by priority and bounded reason.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_admission_total counter\n")
+	h.metrics.mu.Lock()
+	admissionKeys := make([]admissionMetricKey, 0, len(h.metrics.admissions))
+	for key := range h.metrics.admissions {
+		admissionKeys = append(admissionKeys, key)
+	}
+	sort.Slice(admissionKeys, func(i, j int) bool {
+		if admissionKeys[i].Priority == admissionKeys[j].Priority {
+			return admissionKeys[i].Reason < admissionKeys[j].Reason
+		}
+		return admissionKeys[i].Priority < admissionKeys[j].Priority
+	})
+	for _, key := range admissionKeys {
+		_, _ = fmt.Fprintf(writer, "router_admission_total{priority=%q,reason=%q} %d\n", key.Priority, key.Reason, h.metrics.admissions[key])
+	}
+	h.metrics.mu.Unlock()
 	_, _ = fmt.Fprintf(writer, "# HELP router_backend_healthy Whether the latest thresholded backend health state is healthy.\n")
 	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_healthy gauge\n")
 	for _, item := range h.ordered {
@@ -334,6 +379,12 @@ func (m *metrics) record(endpoint string, code int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.requests[metricKey{Endpoint: endpoint, Code: code}]++
+}
+
+func (m *metrics) recordAdmission(priority, reason string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.admissions[admissionMetricKey{Priority: priority, Reason: reason}]++
 }
 
 type statusWriter struct {

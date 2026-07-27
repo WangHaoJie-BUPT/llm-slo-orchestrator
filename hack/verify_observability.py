@@ -9,6 +9,7 @@ from urllib.request import urlopen
 
 REQUIRED_METRICS = {
     "router_requests_total",
+    "router_admission_total",
     "router_backend_healthy",
     "router_backend_health_check_age_seconds",
     "router_outstanding_requests",

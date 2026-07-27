@@ -36,6 +36,7 @@ REQUIRED_PATHS = (
     "evidence/w0-20260720/manifest.yaml",
     "evidence/w0-20260720/summary.json",
     "internal/api/types.go",
+    "internal/admission/limiter.go",
     "internal/backend/client.go",
     "internal/clock/clock.go",
     "internal/config/config.go",
