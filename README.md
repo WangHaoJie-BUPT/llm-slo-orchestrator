@@ -2,6 +2,10 @@
 
 SLO-aware routing and performance engineering for self-hosted vLLM on Kubernetes.
 
+For a comprehensive Chinese architecture, implementation, evidence, deployment,
+and interview-oriented introduction, see
+[`docs/project-overview-zh-CN.md`](docs/project-overview-zh-CN.md).
+
 ## Status
 
 W0 environment and contract freeze is committed. The W1 digest-pinned vLLM

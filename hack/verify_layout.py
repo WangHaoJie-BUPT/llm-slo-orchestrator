@@ -26,6 +26,7 @@ REQUIRED_PATHS = (
     "docs/demo/8-minute.md",
     "docs/operations/slo.md",
     "docs/operations/profile.md",
+    "docs/project-overview-zh-CN.md",
     "docs/reports/w0-environment-freeze.md",
     "docs/reports/w1-guidellm-capacity.md",
     "docs/reports/w2-fake-router.md",
