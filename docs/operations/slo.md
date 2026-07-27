@@ -68,3 +68,15 @@ Picker snapshots calculate `MetricAge` from the last successful collection. An
 endpoint older than `metricFreshnessSeconds` is excluded even when its health
 probe still succeeds. Collection interval and timeout default to two seconds and
 one second and can be changed with `--metrics-interval` and `--metrics-timeout`.
+
+## Retry Boundary
+
+The router performs at most one alternate-endpoint retry, and only when the HTTP
+transport fails before any backend response headers are received. The retry uses
+the same request ID and excludes the failed endpoint from the retry snapshot.
+
+HTTP error statuses are returned without retry. Once response headers or any SSE
+chunk have been written, body read failures terminate that response and never
+send a duplicate request to another endpoint. `X-LLM-Retry-Count` records zero or
+one, and the failed pre-header attempt is counted as endpoint HTTP 502 in router
+metrics.

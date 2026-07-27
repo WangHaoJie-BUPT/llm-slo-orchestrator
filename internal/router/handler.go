@@ -9,7 +9,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"sort"
 	"strconv"
@@ -48,11 +47,12 @@ type Handler struct {
 	sequence atomic.Uint64
 	metrics  metrics
 	limiter  *admission.Limiter
+	client   *http.Client
 }
 
 type target struct {
 	config      TargetConfig
-	proxy       *httputil.ReverseProxy
+	baseURL     *url.URL
 	outstanding atomic.Int64
 	healthy     atomic.Bool
 	ready       atomic.Bool
@@ -97,6 +97,9 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		targets: make(map[string]*target, len(configs)),
 		logger:  logger,
 		metrics: metrics{requests: make(map[metricKey]uint64), admissions: make(map[admissionMetricKey]uint64)},
+		client: &http.Client{Transport: http.DefaultTransport, CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		}},
 	}
 	limiter, err := admission.New(policy.Fairness.TenantRatePerSecond, policy.Fairness.TenantBurst, clock.Real{})
 	if err != nil {
@@ -117,12 +120,7 @@ func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig
 		if err != nil || (baseURL.Scheme != "http" && baseURL.Scheme != "https") || baseURL.Host == "" {
 			return nil, fmt.Errorf("backend %q has invalid URL %q", config.ID, config.BaseURL)
 		}
-		proxy := httputil.NewSingleHostReverseProxy(baseURL)
-		proxy.FlushInterval = -1
-		proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, proxyErr error) {
-			writeJSONError(writer, http.StatusBadGateway, "backend request failed")
-		}
-		item := &target{config: config, proxy: proxy}
+		item := &target{config: config, baseURL: baseURL}
 		item.healthy.Store(config.Healthy)
 		item.ready.Store(config.Ready)
 		item.running.Store(int64(config.Running))
@@ -232,27 +230,83 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	selected := h.targets[decision.SelectedEndpoint]
-	selected.outstanding.Add(1)
-	defer selected.outstanding.Add(-1)
-
 	request.Header.Set("X-Request-ID", routingRequest.ID)
+	h.serveDecision(writer, request, routingRequest, snapshot, decision)
+}
+
+func (h *Handler) serveDecision(writer http.ResponseWriter, request *http.Request, routingRequest api.Request, snapshot api.EndpointSnapshot, decision api.Decision) {
+	for attempt := 0; attempt < 2; attempt++ {
+		selected := h.targets[decision.SelectedEndpoint]
+		selected.outstanding.Add(1)
+		status, started, err := h.forward(writer, request, selected, routingRequest, decision, attempt)
+		selected.outstanding.Add(-1)
+		if err == nil || started {
+			h.metrics.record(decision.SelectedEndpoint, status)
+			h.logAttempt(routingRequest.ID, decision, status, attempt, err)
+			return
+		}
+		h.metrics.record(decision.SelectedEndpoint, http.StatusBadGateway)
+		h.logAttempt(routingRequest.ID, decision, http.StatusBadGateway, attempt, err)
+		if attempt == 1 {
+			break
+		}
+		retrySnapshot := snapshot
+		retrySnapshot.Generation++
+		retrySnapshot.Endpoints = append([]api.Endpoint(nil), snapshot.Endpoints...)
+		for index := range retrySnapshot.Endpoints {
+			if retrySnapshot.Endpoints[index].ID == decision.SelectedEndpoint {
+				retrySnapshot.Endpoints[index].Healthy = false
+			}
+		}
+		retryDecision, pickErr := h.picker.Pick(routingRequest, retrySnapshot, h.policy)
+		if pickErr != nil || retryDecision.Admission == "reject" {
+			break
+		}
+		decision = retryDecision
+	}
+	writeJSONError(writer, http.StatusBadGateway, "backend request failed before response headers")
+}
+
+func (h *Handler) forward(writer http.ResponseWriter, request *http.Request, selected *target, routingRequest api.Request, decision api.Decision, attempt int) (int, bool, error) {
+	outgoing := request.Clone(request.Context())
+	outgoing.URL.Scheme = selected.baseURL.Scheme
+	outgoing.URL.Host = selected.baseURL.Host
+	outgoing.URL.Path = strings.TrimRight(selected.baseURL.Path, "/") + request.URL.Path
+	outgoing.RequestURI = ""
+	outgoing.Host = selected.baseURL.Host
+	outgoing.Header = request.Header.Clone()
+	removeHopHeaders(outgoing.Header)
+	if request.GetBody != nil {
+		body, err := request.GetBody()
+		if err != nil {
+			return 0, false, err
+		}
+		outgoing.Body = body
+	}
+	response, err := h.client.Do(outgoing)
+	if err != nil {
+		return 0, false, err
+	}
+	defer response.Body.Close()
+	removeHopHeaders(response.Header)
+	for key, values := range response.Header {
+		for _, value := range values {
+			writer.Header().Add(key, value)
+		}
+	}
 	writer.Header().Set("X-LLM-Endpoint", decision.SelectedEndpoint)
 	writer.Header().Set("X-LLM-Request-ID", routingRequest.ID)
 	writer.Header().Set("X-LLM-Decision-Reason", decision.Reason)
 	writer.Header().Set("X-LLM-Policy-Generation", strconv.FormatUint(decision.PolicyGeneration, 10))
-	status := &statusWriter{ResponseWriter: writer}
-	selected.proxy.ServeHTTP(status, request)
-	h.metrics.record(decision.SelectedEndpoint, status.statusCode())
+	writer.Header().Set("X-LLM-Retry-Count", strconv.Itoa(attempt))
+	writer.WriteHeader(response.StatusCode)
+	err = copyResponse(writer, response.Body, strings.HasPrefix(response.Header.Get("Content-Type"), "text/event-stream"))
+	return response.StatusCode, true, err
+}
+
+func (h *Handler) logAttempt(requestID string, decision api.Decision, status, attempt int, err error) {
 	if h.logger != nil {
-		h.logger.Printf(
-			"request_id=%s endpoint=%s status=%d reason=%s candidates=%d",
-			routingRequest.ID,
-			decision.SelectedEndpoint,
-			status.statusCode(),
-			decision.Reason,
-			decision.CandidateCount,
-		)
+		h.logger.Printf("request_id=%s endpoint=%s status=%d reason=%s candidates=%d retry=%d error=%v", requestID, decision.SelectedEndpoint, status, decision.Reason, decision.CandidateCount, attempt, err)
 	}
 }
 
@@ -294,6 +348,7 @@ func (h *Handler) routingRequest(
 		return api.Request{}, errors.New("request body is invalid or too large")
 	}
 	request.Body = io.NopCloser(bytes.NewReader(body))
+	request.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 	request.ContentLength = int64(len(body))
 	var payload struct {
 		Model string `json:"model"`
@@ -428,40 +483,43 @@ func (m *metrics) recordAdmission(priority, reason string) {
 	m.admissions[admissionMetricKey{Priority: priority, Reason: reason}]++
 }
 
-type statusWriter struct {
-	http.ResponseWriter
-	status int
+var hopHeaders = []string{
+	"Connection", "Proxy-Connection", "Keep-Alive", "Proxy-Authenticate",
+	"Proxy-Authorization", "Te", "Trailer", "Transfer-Encoding", "Upgrade",
 }
 
-func (w *statusWriter) WriteHeader(code int) {
-	if w.status != 0 {
-		return
+func removeHopHeaders(header http.Header) {
+	for _, value := range header.Values("Connection") {
+		for _, token := range strings.Split(value, ",") {
+			header.Del(strings.TrimSpace(token))
+		}
 	}
-	w.status = code
-	w.ResponseWriter.WriteHeader(code)
-}
-
-func (w *statusWriter) Write(data []byte) (int, error) {
-	if w.status == 0 {
-		w.WriteHeader(http.StatusOK)
-	}
-	return w.ResponseWriter.Write(data)
-}
-
-func (w *statusWriter) Flush() {
-	if w.status == 0 {
-		w.WriteHeader(http.StatusOK)
-	}
-	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
+	for _, key := range hopHeaders {
+		header.Del(key)
 	}
 }
 
-func (w *statusWriter) statusCode() int {
-	if w.status == 0 {
-		return http.StatusOK
+func copyResponse(writer http.ResponseWriter, reader io.Reader, flush bool) error {
+	buffer := make([]byte, 32*1024)
+	for {
+		count, readErr := reader.Read(buffer)
+		if count > 0 {
+			if _, writeErr := writer.Write(buffer[:count]); writeErr != nil {
+				return writeErr
+			}
+			if flush {
+				if flusher, ok := writer.(http.Flusher); ok {
+					flusher.Flush()
+				}
+			}
+		}
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				return nil
+			}
+			return readErr
+		}
 	}
-	return w.status
 }
 
 func writeJSONError(writer http.ResponseWriter, status int, message string) {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -64,6 +65,73 @@ func TestHandlerStreamsSSE(t *testing.T) {
 	}
 	if len(events) != 3 || events[2] != "data: [DONE]" {
 		t.Fatalf("stream events = %#v", events)
+	}
+}
+
+func TestHandlerRetriesOnlyBeforeResponseHeaders(t *testing.T) {
+	closed := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	closedURL := closed.URL
+	closed.Close()
+	live := newFakeBackend(t, "live")
+	handler := newTestHandler(t, "round-robin", []TargetConfig{
+		{ID: "a-closed", BaseURL: closedURL, Healthy: true, Ready: true},
+		{ID: "b-live", BaseURL: live.URL, Healthy: true, Ready: true},
+	})
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	response := postCompletion(t, server.URL, false)
+	if response.StatusCode != http.StatusOK || response.Header.Get("X-LLM-Endpoint") != "b-live" {
+		t.Fatalf("retry response = %d endpoint=%q", response.StatusCode, response.Header.Get("X-LLM-Endpoint"))
+	}
+	if response.Header.Get("X-LLM-Retry-Count") != "1" {
+		t.Fatalf("retry count = %q", response.Header.Get("X-LLM-Retry-Count"))
+	}
+	metricsResponse, err := http.Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metricsBody, _ := io.ReadAll(metricsResponse.Body)
+	metricsResponse.Body.Close()
+	if !bytes.Contains(metricsBody, []byte(`router_requests_total{endpoint="a-closed",code="502"} 1`)) ||
+		!bytes.Contains(metricsBody, []byte(`router_requests_total{endpoint="b-live",code="200"} 1`)) {
+		t.Fatalf("retry metrics missing:\n%s", metricsBody)
+	}
+}
+
+func TestHandlerDoesNotRetryAfterStreamingStarts(t *testing.T) {
+	partial := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "text/event-stream")
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"PARTIAL\"}}]}\n\n"))
+		writer.(http.Flusher).Flush()
+		connection, _, err := writer.(http.Hijacker).Hijack()
+		if err == nil {
+			connection.Close()
+		}
+	}))
+	t.Cleanup(partial.Close)
+	var backupRequests atomic.Int64
+	backup := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		backupRequests.Add(1)
+		writer.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(backup.Close)
+	handler := newTestHandler(t, "round-robin", []TargetConfig{
+		{ID: "a-partial", BaseURL: partial.URL, Healthy: true, Ready: true},
+		{ID: "b-backup", BaseURL: backup.URL, Healthy: true, Ready: true},
+	})
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	response := postCompletion(t, server.URL, true)
+	_, _ = io.ReadAll(response.Body)
+	response.Body.Close()
+	if response.Header.Get("X-LLM-Endpoint") != "a-partial" || response.Header.Get("X-LLM-Retry-Count") != "0" {
+		t.Fatalf("stream endpoint=%q retry=%q", response.Header.Get("X-LLM-Endpoint"), response.Header.Get("X-LLM-Retry-Count"))
+	}
+	if backupRequests.Load() != 0 {
+		t.Fatalf("backup received %d duplicated stream requests", backupRequests.Load())
 	}
 }
 

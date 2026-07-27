@@ -201,6 +201,13 @@ usage, and TTFT counters. Only successful scrapes refresh endpoint state; stale
 metrics exclude the endpoint before picker evaluation. The same adapter is used
 by deterministic fake backends and the real pinned vLLM service.
 
+## W4 Safe Retry Boundary
+
+One alternate endpoint may be tried after a transport failure only while no
+backend response headers have reached the client. HTTP statuses and interrupted
+SSE streams are never replayed. Responses expose `X-LLM-Retry-Count`, and tests
+prove that a backup receives zero requests after a partial stream has started.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint
