@@ -174,6 +174,19 @@ make profile-reconcile
 recorded 16 requests/second point is the highest short-run rate tested for the
 declared workload, not a saturation estimate or production guarantee.
 
+## W4 Observability Dashboard
+
+Start the provisioned Prometheus and Grafana services with:
+
+```bash
+make dashboard-up
+python3 hack/verify_observability.py --runtime
+```
+
+The dashboard is available at `http://127.0.0.1:3000/d/llm-slo-overview` and
+includes router traffic/failures/health plus vLLM TTFT, TPOT, queue, and KV cache
+views. Provisioning and every PromQL expression are runtime-validated.
+
 ## Evidence Boundary
 
 The completed W1 smoke and calibration demonstrate a real, pinned single-endpoint

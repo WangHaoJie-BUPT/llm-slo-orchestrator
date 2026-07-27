@@ -1,0 +1,100 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "sum by (endpoint) (rate(router_requests_total[5m]))", "legendFormat": "{{endpoint}}", "refId": "A"}],
+      "title": "Router Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "targets": [{"expr": "sum by (endpoint, code) (rate(router_requests_total{code=~\"5..\"}[5m]))", "legendFormat": "{{endpoint}} {{code}}", "refId": "A"}],
+      "title": "Router 5xx Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"max": 1, "min": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "targets": [{"expr": "router_backend_healthy", "legendFormat": "{{endpoint}}", "refId": "A"}],
+      "title": "Backend Health",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "id": 4,
+      "targets": [{"expr": "router_backend_health_check_age_seconds", "legendFormat": "{{endpoint}}", "refId": "A"}],
+      "title": "Health Check Age",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "id": 5,
+      "targets": [{"expr": "router_outstanding_requests", "legendFormat": "{{endpoint}}", "refId": "A"}],
+      "title": "Router Outstanding Requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "id": 6,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, model_name) (rate({__name__=\"vllm:time_to_first_token_seconds_bucket\"}[5m])))", "legendFormat": "{{model_name}}", "refId": "A"}],
+      "title": "vLLM TTFT p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "id": 7,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, model_name) (rate({__name__=\"vllm:inter_token_latency_seconds_bucket\"}[5m])))", "legendFormat": "{{model_name}}", "refId": "A"}],
+      "title": "vLLM TPOT p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"max": 1, "min": 0, "unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "id": 8,
+      "targets": [{"expr": "{__name__=\"vllm:kv_cache_usage_perc\"}", "legendFormat": "{{model_name}}", "refId": "A"}],
+      "title": "vLLM KV Cache Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "id": 9,
+      "targets": [
+        {"expr": "{__name__=\"vllm:num_requests_running\"}", "legendFormat": "running", "refId": "A"},
+        {"expr": "{__name__=\"vllm:num_requests_waiting\"}", "legendFormat": "waiting", "refId": "B"}
+      ],
+      "title": "vLLM Running and Waiting",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": ["llm", "slo", "vllm", "router"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "LLM SLO Orchestrator Overview",
+  "uid": "llm-slo-overview",
+  "version": 1
+}

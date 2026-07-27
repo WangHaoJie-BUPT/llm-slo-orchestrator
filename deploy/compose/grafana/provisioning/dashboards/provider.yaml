@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: llm-slo-orchestrator
+    orgId: 1
+    folder: LLM SLO Orchestrator
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards

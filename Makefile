@@ -16,7 +16,7 @@ ROUTER_IMAGE ?= llm-slo-router:w2-local
 FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
-.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout verify-profile report-check profile-reconcile
+.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout verify-profile verify-observability report-check profile-reconcile
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
 .PHONY: e2e-fake e2e-gpu e2e-router-gpu e2e-kind benchmark benchmark-w1 report
 .PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
@@ -60,13 +60,16 @@ verify-versions:
 verify-layout:
 	$(PYTHON) hack/verify_layout.py
 
-verify: fmt-check lint test test-python test-race build verify-versions verify-layout verify-profile report-check
+verify: fmt-check lint test test-python test-race build verify-versions verify-layout verify-profile verify-observability report-check
 
 profile-reconcile: build
 	$(BIN_DIR)/profile-controller --policy config/example-policy.yaml --profile config/qwen3-0.6b-profile.yaml --output config/reconciled-profile.json --once
 
 verify-profile: build
 	$(BIN_DIR)/profile-controller --policy config/example-policy.yaml --profile config/qwen3-0.6b-profile.yaml --output config/reconciled-profile.json --check
+
+verify-observability:
+	$(PYTHON) hack/verify_observability.py
 
 compose-config:
 	MODEL_DIR=$(MODEL_DIR) docker compose -f $(COMPOSE_FILE) --profile observability --profile gpu config --quiet
