@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "suite": "h1-h4",
+  "repetitions": 5,
+  "calibration_load_multipliers": [0.5, 0.8, 1.0, 1.2],
+  "dimensions": {
+    "arrival": ["constant", "poisson", "burst-trace-replay"],
+    "prompt_tokens": [128, 1024, 4096],
+    "output_tokens": [64, 256, 512],
+    "prefix_reuse_percent": [0, 50, 80],
+    "priority": ["online-high", "online-normal", "batch-low"]
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Least-outstanding reduces tail TTFT versus round-robin under asynchronous mixed-length traffic.",
+      "baseline": "round-robin",
+      "candidate": "least-outstanding",
+      "primary_metrics": ["ttft_p95_ms", "ttft_p99_ms"],
+      "required_level": "L3",
+      "local_status": "mechanics-only"
+    },
+    {
+      "id": "H2",
+      "statement": "Near saturation, SLO-risk routing improves goodput rather than merely increasing rejection rate.",
+      "baseline": "least-queue",
+      "candidate": "slo-prefix-affinity",
+      "primary_metrics": ["slo_goodput_rps", "rejection_rate"],
+      "required_level": "L3",
+      "local_status": "mechanics-only"
+    },
+    {
+      "id": "H3",
+      "statement": "With repeated prefixes, bounded affinity improves TTFT but yields to queue pressure at hotspots.",
+      "baseline": "least-queue",
+      "candidate": "slo-prefix-affinity",
+      "primary_metrics": ["ttft_p95_ms", "endpoint_queue_imbalance"],
+      "required_level": "L3",
+      "local_status": "mechanics-only"
+    },
+    {
+      "id": "H4",
+      "statement": "Priority-aware admission protects the online SLO while preserving an explainable batch completion rate.",
+      "baseline": "admission-disabled",
+      "candidate": "priority-admission",
+      "primary_metrics": ["online_ttft_p95_ms", "online_slo_goodput_rps", "batch_completion_rate"],
+      "required_level": "L2",
+      "local_status": "component-validated"
+    }
+  ],
+  "claim_boundary": "H1-H3 policy benefits require two independent real accelerator endpoints. A single local RTX 5070 Ti can validate mechanics only. H4 has component-level local evidence; a controlled mixed-priority load campaign remains required for a full result."
+}

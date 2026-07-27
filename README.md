@@ -12,7 +12,9 @@ streaming router, deterministic two-backend L1 test, and a real vLLM L2 router
 path. The temporary kind deployment is also validated with two fake backends.
 W3 adds generated evidence reports, thresholded active backend health, a
 deterministic failure/recovery campaign, and evidence-backed model profile
-reconciliation.
+reconciliation. W4 adds provisioned observability, bounded per-tenant
+admission, fresh vLLM runtime metrics, and retry only before a backend response
+starts. The core local demonstration is automated and runtime-validated.
 
 ## Scope
 
@@ -207,6 +209,33 @@ One alternate endpoint may be tried after a transport failure only while no
 backend response headers have reached the client. HTTP statuses and interrupted
 SSE streams are never replayed. Responses expose `X-LLM-Retry-Count`, and tests
 prove that a backup receives zero requests after a partial stream has started.
+
+## Core Demonstration
+
+With Prometheus and Grafana running, execute all local L0/L1 demonstration
+stages with:
+
+```bash
+make demo
+```
+
+With the pinned vLLM Compose service also healthy, include the real-model L2
+path:
+
+```bash
+make demo-real
+```
+
+Each command writes per-stage logs and a `summary.json` under
+`/tmp/llm-slo-demo-*`; it does not add generated files to repository evidence.
+The presenter runbook is in `docs/demo/8-minute.md`, and the implemented and
+pending fault coverage is in `docs/testing/fault-matrix.md`.
+
+The fixed H1-H4 experiment contract is validated by `make verify`. H1-H3 remain
+`mechanics-only` locally because policy benefit comparisons require two
+independent real accelerator endpoints (L3). H4 admission components are
+validated locally; a controlled mixed-priority real-model campaign remains a
+separate experiment.
 
 ## Evidence Boundary
 

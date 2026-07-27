@@ -16,10 +16,10 @@ ROUTER_IMAGE ?= llm-slo-router:w2-local
 FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
-.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout verify-profile verify-observability report-check profile-reconcile
+.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout verify-experiments verify-profile verify-observability report-check profile-reconcile
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
 .PHONY: e2e-fake e2e-gpu e2e-router-gpu e2e-kind benchmark benchmark-w1 report
-.PHONY: fault-smoke kind-up kind-down cloud-clean-check clean
+.PHONY: fault-smoke demo demo-real kind-up kind-down cloud-clean-check clean
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -60,7 +60,10 @@ verify-versions:
 verify-layout:
 	$(PYTHON) hack/verify_layout.py
 
-verify: fmt-check lint test test-python test-race build verify-versions verify-layout verify-profile verify-observability report-check
+verify-experiments:
+	$(PYTHON) hack/verify_experiments.py
+
+verify: fmt-check lint test test-python test-race build verify-versions verify-layout verify-experiments verify-profile verify-observability report-check
 
 profile-reconcile: build
 	$(BIN_DIR)/profile-controller --policy config/example-policy.yaml --profile config/qwen3-0.6b-profile.yaml --output config/reconciled-profile.json --once
@@ -119,6 +122,12 @@ report-check:
 
 fault-smoke: build
 	$(PYTHON) hack/fault_smoke.py --router $(BIN_DIR)/router --backend $(BIN_DIR)/fake-backend --evidence-dir $(W3_FAULT_EVIDENCE_DIR)
+
+demo:
+	$(PYTHON) hack/demo.py
+
+demo-real:
+	$(PYTHON) hack/demo.py --real-gpu
 
 kind-up kind-down cloud-clean-check:
 	$(PYTHON) hack/not_implemented.py $@
