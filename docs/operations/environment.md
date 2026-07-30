@@ -12,9 +12,9 @@ Windows 11
         -> vLLM GPU container (W1)
 ```
 
-The Ubuntu VHD is stored under `<redacted-local-path>`. Docker Desktop data is stored
-under `<redacted-local-path>`. The project repository should be opened from Ubuntu when
-running build and benchmark commands.
+The Ubuntu VHD and Docker Desktop data locations are host-specific and are not
+part of the repository contract. The project repository should be opened from
+Ubuntu when running build and benchmark commands.
 
 ## Start Check
 
@@ -43,8 +43,8 @@ Keep `GOSUMDB=sum.golang.org`; the repository locks dependency sums in `go.sum`.
 
 ## W1 Local Inference
 
-The frozen Qwen3-0.6B snapshot is stored outside the repository at
-`/path/to/Qwen3-0.6B-c1899de`. Verify it before starting the container:
+The frozen Qwen3-0.6B snapshot is stored outside the repository. Set
+`MODEL_DIR` to its local path and verify it before starting the container:
 
 ```bash
 make verify-model

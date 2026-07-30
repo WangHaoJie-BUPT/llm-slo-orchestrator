@@ -641,7 +641,7 @@ make verify-model
 make gpu-up
 ```
 
-默认模型目录：
+模型目录需要显式指定为你本机的固定 revision 快照，例如：
 
 ```text
 /path/to/Qwen3-0.6B-c1899de

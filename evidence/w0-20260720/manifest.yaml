@@ -12,8 +12,8 @@ repository:
 
 environment:
   versionsLock: versions.lock.yaml
-  ubuntuPath: "E:\\WSL\\Ubuntu"
-  dockerDataPath: "E:\\DockerData"
+  ubuntuPath: "<redacted-local-path>"
+  dockerDataPath: "<redacted-local-path>"
   gpuContainerValidated: true
   kindClusterValidated: true
   kindSmokeClusterCleaned: true

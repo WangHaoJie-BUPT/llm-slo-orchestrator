@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/api"
 )
 
 func TestRoundRobinUsesSnapshotGeneration(t *testing.T) {

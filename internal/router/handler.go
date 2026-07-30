@@ -17,10 +17,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/admission"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/clock"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/picker"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/admission"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/api"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/clock"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/picker"
 )
 
 const maxRequestBodyBytes = 8 << 20

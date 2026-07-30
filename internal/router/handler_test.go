@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/picker"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/api"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/picker"
 )
 
 func TestHandlerRoundRobinAndMetrics(t *testing.T) {

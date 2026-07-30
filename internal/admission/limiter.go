@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/clock"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/clock"
 )
 
 const maxTenants = 4096

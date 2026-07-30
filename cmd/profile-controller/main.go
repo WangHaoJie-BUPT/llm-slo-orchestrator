@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/profile"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/profile"
 )
 
 var version = "w3-dev"

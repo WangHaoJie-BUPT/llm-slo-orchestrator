@@ -1,4 +1,4 @@
-module inference.bupt.dev/llm-slo-orchestrator
+module github.com/bupt20220407/llm-slo-orchestrator
 
 go 1.26.0
 

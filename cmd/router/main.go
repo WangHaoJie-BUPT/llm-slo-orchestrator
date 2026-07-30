@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/backend"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/config"
-	"inference.bupt.dev/llm-slo-orchestrator/internal/picker"
-	server "inference.bupt.dev/llm-slo-orchestrator/internal/router"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/backend"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/config"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/picker"
+	server "github.com/bupt20220407/llm-slo-orchestrator/internal/router"
 )
 
 var version = "w4-dev"

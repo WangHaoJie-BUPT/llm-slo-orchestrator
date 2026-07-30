@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/api"
 )
 
 type Event struct {

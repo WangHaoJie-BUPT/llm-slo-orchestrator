@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/config"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/config"
 )
 
 type Status struct {

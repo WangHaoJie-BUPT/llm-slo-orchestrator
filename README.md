@@ -70,9 +70,11 @@ make report
 ## W1 GPU Smoke
 
 The model directory must contain the exact Qwen3-0.6B revision frozen in
-`versions.lock.yaml`. The default location is on the E drive:
+`versions.lock.yaml`. Set `MODEL_DIR` to the local snapshot before starting GPU
+commands; host-specific paths are intentionally not committed:
 
 ```bash
+export MODEL_DIR=/path/to/Qwen3-0.6B-c1899de
 make verify-model
 make gpu-up
 make e2e-gpu

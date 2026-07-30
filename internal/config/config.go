@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"inference.bupt.dev/llm-slo-orchestrator/internal/api"
+	"github.com/bupt20220407/llm-slo-orchestrator/internal/api"
 )
 
 type Document struct {
