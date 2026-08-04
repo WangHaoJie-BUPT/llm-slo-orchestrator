@@ -5,6 +5,11 @@ import sys
 
 REQUIRED_PATHS = (
     ".github/workflows/ci.yml",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md",
     "cmd/fake-backend/main.go",
     "cmd/router/main.go",
     "cmd/profile-controller/main.go",
@@ -66,12 +71,21 @@ REQUIRED_PATHS = (
     "versions.lock.yaml",
 )
 
+FORBIDDEN_PATHS = (
+    "LICENSE-TODO.md",
+)
+
 
 def main() -> int:
     missing = [path for path in REQUIRED_PATHS if not Path(path).exists()]
+    forbidden = [path for path in FORBIDDEN_PATHS if Path(path).exists()]
     if missing:
         for path in missing:
             print(f"missing required path: {path}", file=sys.stderr)
+        return 1
+    if forbidden:
+        for path in forbidden:
+            print(f"forbidden path present: {path}", file=sys.stderr)
         return 1
     print("repository layout: OK")
     return 0

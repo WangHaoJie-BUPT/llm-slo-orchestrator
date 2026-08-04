@@ -249,3 +249,17 @@ The completed W1 smoke and calibration demonstrate a real, pinned single-endpoin
 inference path over the tested workload range. They do not identify saturation,
 compare routing policies, or establish production generalization. See
 [`docs/adr/0001-scope-and-evidence-boundary.md`](docs/adr/0001-scope-and-evidence-boundary.md).
+
+## Contributing And Security
+
+Development and evidence requirements are documented in
+[`CONTRIBUTING.md`](CONTRIBUTING.md). Report sensitive vulnerabilities through
+the private process in [`SECURITY.md`](SECURITY.md); use public issues only for
+non-sensitive bugs and feature requests.
+
+## License
+
+Project-authored source code, dashboards, configuration, documentation, and
+tests are available under the [Apache License 2.0](LICENSE). External models,
+tools, packages, and container images remain under their upstream licenses; see
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

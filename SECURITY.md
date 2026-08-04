@@ -1,15 +1,26 @@
 # Security Policy
 
-## Supported State
+## Supported Versions
 
-The repository is private and pre-release. Security fixes are applied only to the
-current main branch until the first portfolio release is frozen.
+| Version | Supported |
+| --- | --- |
+| `main` | Yes |
+| Latest GitHub release | Yes |
+| Older releases | No |
 
-## Reporting
+## Reporting A Vulnerability
 
-Do not open a public issue containing credentials, prompts, private model data,
-host paths, or infrastructure identifiers. Report the issue privately to the
-repository owner with reproduction steps and a minimal redacted example.
+Use GitHub Private Vulnerability Reporting:
+
+https://github.com/bupt20220407/llm-slo-orchestrator/security/advisories/new
+
+Include affected versions, impact, reproduction steps, and a minimal redacted
+example. Do not open a public issue containing credentials, prompts, private
+model data, host paths, infrastructure identifiers, or an unpatched exploit.
+
+The maintainer will acknowledge a report when practical, investigate it on the
+current `main` branch, and coordinate disclosure after a fix is available. This
+portfolio project does not provide a commercial response-time SLA.
 
 ## Repository Rules
 
@@ -20,3 +31,5 @@ repository owner with reproduction steps and a minimal redacted example.
 - Pin container images by digest and model downloads by immutable revision.
 - Keep model weights, raw private traces, and large benchmark output outside Git.
 
+Non-sensitive bugs and hardening suggestions may be reported through public
+GitHub issues.
