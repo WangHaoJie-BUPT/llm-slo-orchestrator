@@ -1,6 +1,7 @@
 /bin/
 /dist/
 /.venv/
+/.cache/
 /.pytest_cache/
 __pycache__/
 *.pyc
@@ -17,3 +18,9 @@ __pycache__/
 
 *.log
 *.tmp
+
+/web/node_modules/
+/web/.npm-cache/
+/web/*.tsbuildinfo
+/web/vite.config.js
+/web/vite.config.d.ts

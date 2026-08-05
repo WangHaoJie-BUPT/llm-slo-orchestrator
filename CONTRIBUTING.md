@@ -13,6 +13,13 @@ documented evidence boundary are welcome.
    make verify
    ```
 
+   Console changes also require the locked frontend dependencies:
+
+   ```bash
+   npm ci --prefix web --no-audit --no-fund
+   make console-web-check
+   ```
+
 4. Update documentation, version locks, and third-party notices when a runtime
    dependency or pinned artifact changes.
 5. Open a pull request that explains the behavior, validation performed, and
@@ -28,6 +35,9 @@ documented evidence boundary are welcome.
   committed evidence.
 - Do not commit model weights, raw private prompts, credentials, Authorization
   headers, host-specific paths, or large raw benchmark output.
+- Keep console mutations behind demo mode, same-origin checks, a bearer token,
+  and fixed allowlists. Do not add general command execution or send router
+  control tokens to the browser.
 
 Report security issues through the private process in `SECURITY.md`, not through
 a public issue.

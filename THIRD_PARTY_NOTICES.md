@@ -11,8 +11,21 @@ licenses.
 | Component | Pinned version | License | Source |
 | --- | --- | --- | --- |
 | `gopkg.in/yaml.v3` | 3.0.1 | MIT and Apache-2.0 | https://github.com/go-yaml/yaml |
+| React | 19.0.0 | MIT | https://github.com/facebook/react |
+| React DOM | 19.0.0 | MIT | https://github.com/facebook/react |
+| Lucide React | 0.468.0 | ISC | https://github.com/lucide-icons/lucide |
 
-The exact Go module checksums are recorded in `go.sum`.
+The exact Go module checksums are recorded in `go.sum`. The exact web dependency
+graph and integrity hashes are recorded in `web/package-lock.json`; the embedded
+production bundle is generated from these locked dependencies.
+
+## Development Dependencies
+
+| Component | Pinned version | License | Source |
+| --- | --- | --- | --- |
+| Vite | 6.4.3 | MIT | https://github.com/vitejs/vite |
+| TypeScript | 5.7.3 | Apache-2.0 | https://github.com/microsoft/TypeScript |
+| Vitest | 3.2.7 | MIT | https://github.com/vitest-dev/vitest |
 
 ## Optional Runtime And Validation Components
 

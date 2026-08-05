@@ -39,6 +39,7 @@ type TargetConfig struct {
 }
 
 type Handler struct {
+	policyMu sync.RWMutex
 	policy   api.Policy
 	picker   picker.Picker
 	targets  map[string]*target
@@ -78,6 +79,38 @@ type metricKey struct {
 type admissionMetricKey struct {
 	Priority string
 	Reason   string
+}
+
+type Status struct {
+	Status      string           `json:"status"`
+	Model       string           `json:"model"`
+	Strategy    string           `json:"strategy"`
+	Generation  uint64           `json:"generation"`
+	CollectedAt time.Time        `json:"collectedAt"`
+	Objectives  StatusObjectives `json:"objectives"`
+	Endpoints   []StatusEndpoint `json:"endpoints"`
+}
+
+type StatusObjectives struct {
+	TTFTP95Ms    int64   `json:"ttftP95Ms"`
+	TPOTP95Ms    int64   `json:"tpotP95Ms"`
+	Availability float64 `json:"availability"`
+}
+
+type StatusEndpoint struct {
+	ID                string  `json:"id"`
+	Model             string  `json:"model"`
+	Healthy           bool    `json:"healthy"`
+	Ready             bool    `json:"ready"`
+	MetricsFresh      bool    `json:"metricsFresh"`
+	HealthCheckAgeMs  int64   `json:"healthCheckAgeMs"`
+	MetricAgeMs       int64   `json:"metricAgeMs"`
+	Running           int     `json:"running"`
+	Waiting           int     `json:"waiting"`
+	Outstanding       int     `json:"outstanding"`
+	KVUsage           float64 `json:"kvUsage"`
+	TTFTEWMAMs        int64   `json:"ttftEwmaMs"`
+	EligibleForPolicy bool    `json:"eligibleForPolicy"`
 }
 
 func New(policy api.Policy, selectedPicker picker.Picker, configs []TargetConfig, logger *log.Logger) (*Handler, error) {
@@ -181,6 +214,75 @@ func (h *Handler) SetEndpointHealth(endpointID string, healthy bool, checkedAt t
 	return nil
 }
 
+func (h *Handler) SetStrategy(strategy string) error {
+	selectedPicker, err := picker.New(strategy)
+	if err != nil {
+		return err
+	}
+	h.policyMu.Lock()
+	h.policy.Strategy = strategy
+	h.policy.Generation++
+	h.picker = selectedPicker
+	h.policyMu.Unlock()
+	return nil
+}
+
+func (h *Handler) Status() Status {
+	h.policyMu.RLock()
+	policy := h.policy
+	h.policyMu.RUnlock()
+	now := time.Now()
+	status := Status{
+		Status:      "ok",
+		Model:       policy.Model,
+		Strategy:    policy.Strategy,
+		Generation:  policy.Generation,
+		CollectedAt: now,
+		Objectives: StatusObjectives{
+			TTFTP95Ms:    policy.Objectives.TTFTP95.Milliseconds(),
+			TPOTP95Ms:    policy.Objectives.TPOTP95.Milliseconds(),
+			Availability: policy.Objectives.Availability,
+		},
+		Endpoints: make([]StatusEndpoint, 0, len(h.ordered)),
+	}
+	for _, item := range h.ordered {
+		checkedAt := time.Unix(0, item.checkedAt.Load())
+		metricsAt := time.Unix(0, item.metricsAt.Load())
+		healthAge := durationSince(now, checkedAt)
+		metricAge := durationSince(now, metricsAt)
+		fresh := metricAge <= policy.MetricFreshness
+		healthy := item.healthy.Load()
+		ready := item.ready.Load()
+		status.Endpoints = append(status.Endpoints, StatusEndpoint{
+			ID:                item.config.ID,
+			Model:             item.config.Model,
+			Healthy:           healthy,
+			Ready:             ready,
+			MetricsFresh:      fresh,
+			HealthCheckAgeMs:  healthAge.Milliseconds(),
+			MetricAgeMs:       metricAge.Milliseconds(),
+			Running:           int(item.running.Load()),
+			Waiting:           int(item.waiting.Load()),
+			Outstanding:       int(item.outstanding.Load()),
+			KVUsage:           math.Float64frombits(item.kvUsage.Load()),
+			TTFTEWMAMs:        time.Duration(item.ttftEWMA.Load()).Milliseconds(),
+			EligibleForPolicy: healthy && ready && fresh,
+		})
+	}
+	return status
+}
+
+func durationSince(now, value time.Time) time.Duration {
+	if value.IsZero() || value.UnixNano() <= 0 {
+		return 0
+	}
+	duration := now.Sub(value)
+	if duration < 0 {
+		return 0
+	}
+	return duration
+}
+
 func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	switch request.URL.Path {
 	case "/health":
@@ -190,6 +292,14 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	case "/metrics":
 		h.serveMetrics(writer)
+		return
+	case "/v1/router/status":
+		if request.Method != http.MethodGet {
+			writeJSONError(writer, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(h.Status())
 		return
 	}
 	if !strings.HasPrefix(request.URL.Path, "/v1/") {
@@ -201,8 +311,12 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	h.policyMu.RLock()
+	policy := h.policy
+	selectedPicker := h.picker
+	h.policyMu.RUnlock()
 	sequence := h.sequence.Add(1)
-	routingRequest, err := h.routingRequest(writer, request, sequence)
+	routingRequest, err := h.routingRequest(writer, request, sequence, policy.Model)
 	if err != nil {
 		writeJSONError(writer, http.StatusBadRequest, err.Error())
 		return
@@ -214,7 +328,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	snapshot := h.snapshot(sequence - 1)
-	decision, err := h.picker.Pick(routingRequest, snapshot, h.policy)
+	decision, err := selectedPicker.Pick(routingRequest, snapshot, policy)
 	if err != nil {
 		if errors.Is(err, picker.ErrNoEligibleEndpoint) {
 			writeJSONError(writer, http.StatusServiceUnavailable, "no eligible backend")
@@ -224,17 +338,17 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if decision.Admission == "reject" {
-		writer.Header().Set("Retry-After", strconv.Itoa(int(h.policy.Admission.RetryAfter.Seconds())))
+		writer.Header().Set("Retry-After", strconv.Itoa(int(policy.Admission.RetryAfter.Seconds())))
 		h.metrics.recordAdmission(string(routingRequest.Priority), "predicted-slo-violation")
 		writeJSONError(writer, http.StatusTooManyRequests, "request rejected by admission policy")
 		return
 	}
 
 	request.Header.Set("X-Request-ID", routingRequest.ID)
-	h.serveDecision(writer, request, routingRequest, snapshot, decision)
+	h.serveDecision(writer, request, routingRequest, snapshot, decision, policy, selectedPicker)
 }
 
-func (h *Handler) serveDecision(writer http.ResponseWriter, request *http.Request, routingRequest api.Request, snapshot api.EndpointSnapshot, decision api.Decision) {
+func (h *Handler) serveDecision(writer http.ResponseWriter, request *http.Request, routingRequest api.Request, snapshot api.EndpointSnapshot, decision api.Decision, policy api.Policy, selectedPicker picker.Picker) {
 	for attempt := 0; attempt < 2; attempt++ {
 		selected := h.targets[decision.SelectedEndpoint]
 		selected.outstanding.Add(1)
@@ -258,7 +372,7 @@ func (h *Handler) serveDecision(writer http.ResponseWriter, request *http.Reques
 				retrySnapshot.Endpoints[index].Healthy = false
 			}
 		}
-		retryDecision, pickErr := h.picker.Pick(routingRequest, retrySnapshot, h.policy)
+		retryDecision, pickErr := selectedPicker.Pick(routingRequest, retrySnapshot, policy)
 		if pickErr != nil || retryDecision.Admission == "reject" {
 			break
 		}
@@ -314,6 +428,7 @@ func (h *Handler) routingRequest(
 	writer http.ResponseWriter,
 	request *http.Request,
 	sequence uint64,
+	model string,
 ) (api.Request, error) {
 	requestID := request.Header.Get("X-Request-ID")
 	if requestID == "" {
@@ -339,7 +454,7 @@ func (h *Handler) routingRequest(
 		result.Deadline = deadline
 	}
 	if request.Method == http.MethodGet {
-		result.Model = h.policy.Model
+		result.Model = model
 		return result, nil
 	}
 
@@ -468,6 +583,26 @@ func (h *Handler) serveMetrics(writer http.ResponseWriter) {
 			item.config.ID,
 			item.outstanding.Load(),
 		)
+	}
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_metric_age_seconds Seconds since the latest successful backend metric collection.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_metric_age_seconds gauge\n")
+	for _, item := range h.ordered {
+		age := durationSince(now, time.Unix(0, item.metricsAt.Load())).Seconds()
+		_, _ = fmt.Fprintf(writer, "router_backend_metric_age_seconds{endpoint=%q} %.6f\n", item.config.ID, age)
+	}
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_running_requests Requests running according to the latest backend metrics.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_running_requests gauge\n")
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_waiting_requests Requests waiting according to the latest backend metrics.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_waiting_requests gauge\n")
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_kv_cache_usage_ratio KV cache usage ratio according to the latest backend metrics.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_kv_cache_usage_ratio gauge\n")
+	_, _ = fmt.Fprintf(writer, "# HELP router_backend_ttft_ewma_seconds Time-to-first-token EWMA according to the latest backend metrics.\n")
+	_, _ = fmt.Fprintf(writer, "# TYPE router_backend_ttft_ewma_seconds gauge\n")
+	for _, item := range h.ordered {
+		_, _ = fmt.Fprintf(writer, "router_backend_running_requests{endpoint=%q} %d\n", item.config.ID, item.running.Load())
+		_, _ = fmt.Fprintf(writer, "router_backend_waiting_requests{endpoint=%q} %d\n", item.config.ID, item.waiting.Load())
+		_, _ = fmt.Fprintf(writer, "router_backend_kv_cache_usage_ratio{endpoint=%q} %.6f\n", item.config.ID, math.Float64frombits(item.kvUsage.Load()))
+		_, _ = fmt.Fprintf(writer, "router_backend_ttft_ewma_seconds{endpoint=%q} %.6f\n", item.config.ID, time.Duration(item.ttftEWMA.Load()).Seconds())
 	}
 }
 
