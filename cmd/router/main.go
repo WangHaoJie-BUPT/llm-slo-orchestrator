@@ -42,9 +42,13 @@ func main() {
 	healthSuccessThreshold := flag.Int("health-success-threshold", 1, "consecutive successes before recovery")
 	metricsInterval := flag.Duration("metrics-interval", 2*time.Second, "backend metrics collection interval")
 	metricsTimeout := flag.Duration("metrics-timeout", time.Second, "backend metrics collection timeout")
+	controlToken := flag.String("control-token", "", "optional bearer token enabling the local strategy control API")
 	var backends backendFlags
 	flag.Var(&backends, "backend", "backend target in id=http://host:port form; repeat for multiple targets")
 	flag.Parse()
+	if *controlToken == "" {
+		*controlToken = os.Getenv("LLM_SLO_ROUTER_CONTROL_TOKEN")
+	}
 
 	if *showVersion {
 		fmt.Printf("llm-slo-router %s\n", version)
@@ -95,7 +99,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:              *listenAddress,
-		Handler:           handler,
+		Handler:           server.WithControlAPI(handler, *controlToken),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       90 * time.Second,
 	}

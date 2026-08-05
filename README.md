@@ -18,7 +18,9 @@ W3 adds generated evidence reports, thresholded active backend health, a
 deterministic failure/recovery campaign, and evidence-backed model profile
 reconciliation. W4 adds provisioned observability, bounded per-tenant
 admission, fresh vLLM runtime metrics, and retry only before a backend response
-starts. The core local demonstration is automated and runtime-validated.
+starts. W5 adds an embedded operator console for live topology, streaming
+request demonstration, bounded evidence access, and explicitly enabled local
+controls. The core local demonstration is automated and runtime-validated.
 
 ## Scope
 
@@ -39,6 +41,7 @@ enhancements. They do not block the four-week release.
 - Ubuntu 24.04 under WSL 2
 - Docker Desktop with WSL integration
 - Go 1.26.5
+- Node.js 20.18.1 and npm 10.8.2 for console development
 - Python 3.12
 - GNU Make
 - kubectl 1.36.2, kind 0.32.0, and Helm 4.2.3
@@ -215,6 +218,44 @@ One alternate endpoint may be tried after a transport failure only while no
 backend response headers have reached the client. HTTP statuses and interrupted
 SSE streams are never replayed. Responses expose `X-LLM-Retry-Count`, and tests
 prove that a backup receives zero requests after a partial stream has started.
+
+## W5 Operator Console
+
+Install the locked web dependencies once, build all binaries, then start the
+router and console in separate terminals:
+
+```bash
+npm ci --prefix web --no-audit --no-fund
+make build
+./bin/fake-backend --listen 127.0.0.1:18001 --id fake-a
+./bin/router --listen 127.0.0.1:8080 \
+  --config config/e2e-fake-policy.yaml \
+  --backend fake-a=http://127.0.0.1:18001
+make console-run
+```
+
+Open `http://127.0.0.1:8090`. The console provides the router topology,
+endpoint eligibility, live OpenAI-compatible SSE requests, routing response
+headers, allowlisted report/evidence access, and a link to Grafana. It does not
+record prompts or generated text.
+
+Runtime-changing controls are disabled by default. To enable the allowlisted
+strategy and scenario controls locally, provide non-empty tokens to both
+processes:
+
+```bash
+export LLM_SLO_CONSOLE_CONTROL_TOKEN="replace-with-a-random-local-token"
+export LLM_SLO_ROUTER_CONTROL_TOKEN="replace-with-a-different-random-local-token"
+./bin/router --config config/e2e-fake-policy.yaml \
+  --backend fake-a=http://127.0.0.1:18001
+make console-run-demo
+```
+
+Enter only the console token in the browser. The router token remains
+server-side. The console binds to loopback by default, applies a restrictive
+content security policy, rejects cross-origin control requests, accepts only
+fixed scenario IDs, and permits only one scenario job at a time. See
+[`docs/adr/0004-demo-console-control-plane.md`](docs/adr/0004-demo-console-control-plane.md).
 
 ## Core Demonstration
 

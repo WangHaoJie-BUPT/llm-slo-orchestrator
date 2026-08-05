@@ -3,6 +3,7 @@ package router
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,6 +41,56 @@ func TestHandlerRoundRobinAndMetrics(t *testing.T) {
 	body, _ := io.ReadAll(response.Body)
 	if !bytes.Contains(body, []byte(`router_requests_total{endpoint="a",code="200"} 1`)) {
 		t.Fatalf("metrics missing endpoint a counter:\n%s", body)
+	}
+}
+
+func TestHandlerStatusAndStrategyControl(t *testing.T) {
+	backend := newFakeBackend(t, "status")
+	handler := newTestHandler(t, "round-robin", []TargetConfig{{
+		ID: "status", BaseURL: backend.URL, Healthy: true, Ready: true,
+		Running: 2, Waiting: 1, KVUsage: 0.25, TTFTEWMA: 40 * time.Millisecond,
+	}})
+	server := httptest.NewServer(WithControlAPI(handler, "secret-token"))
+	t.Cleanup(server.Close)
+
+	response, err := http.Get(server.URL + "/v1/router/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var status Status
+	if err := json.NewDecoder(response.Body).Decode(&status); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if status.Strategy != "round-robin" || len(status.Endpoints) != 1 || status.Endpoints[0].Running != 2 {
+		t.Fatalf("unexpected status: %#v", status)
+	}
+
+	unauthorized, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/v1/strategy", strings.NewReader(`{"strategy":"random"}`))
+	unauthorized.Header.Set("Content-Type", "application/json")
+	unauthorizedResponse, err := http.DefaultClient.Do(unauthorized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unauthorizedResponse.Body.Close()
+	if unauthorizedResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status = %d", unauthorizedResponse.StatusCode)
+	}
+
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/v1/strategy", strings.NewReader(`{"strategy":"least-outstanding"}`))
+	request.Header.Set("Authorization", "Bearer secret-token")
+	request.Header.Set("Content-Type", "application/json")
+	controlResponse, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer controlResponse.Body.Close()
+	if controlResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(controlResponse.Body)
+		t.Fatalf("control status = %d: %s", controlResponse.StatusCode, body)
+	}
+	if handler.Status().Strategy != "least-outstanding" || handler.Status().Generation != 2 {
+		t.Fatalf("strategy status = %#v", handler.Status())
 	}
 }
 

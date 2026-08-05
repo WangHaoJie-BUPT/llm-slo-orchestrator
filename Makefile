@@ -1,5 +1,6 @@
 GO ?= go
 PYTHON ?= python3
+NPM ?= npm
 BIN_DIR ?= bin
 DIST_DIR ?= dist
 COMPOSE_FILE ?= deploy/compose/compose.yaml
@@ -14,9 +15,11 @@ W2_KIND_EVIDENCE_DIR ?= evidence/w2-kind-$(shell date +%Y%m%dT%H%M%S%z)
 W3_FAULT_EVIDENCE_DIR ?= evidence/w3-fault-$(shell date +%Y%m%dT%H%M%S%z)
 ROUTER_IMAGE ?= llm-slo-router:w2-local
 FAKE_BACKEND_IMAGE ?= llm-slo-fake-backend:w2-local
+CONSOLE_IMAGE ?= llm-slo-console:w5-local
 GO_FILES := $(shell find cmd internal -type f -name '*.go')
 
-.PHONY: fmt fmt-check lint test test-python test-race build static-build container-images verify verify-versions verify-layout verify-experiments verify-profile verify-observability report-check profile-reconcile
+.PHONY: fmt fmt-check lint test test-python test-race test-web build static-build container-images verify verify-versions verify-layout verify-experiments verify-profile verify-observability report-check profile-reconcile
+.PHONY: console-web console-web-check console-run console-run-demo
 .PHONY: compose-config compose-up compose-down dashboard-up gpu-up gpu-down verify-model verify-loadgen
 .PHONY: e2e-fake e2e-gpu e2e-router-gpu e2e-kind benchmark benchmark-w1 report
 .PHONY: fault-smoke demo demo-real kind-up kind-down cloud-clean-check clean
@@ -36,23 +39,38 @@ test:
 test-python:
 	$(PYTHON) -m unittest discover -s hack -p 'test_*.py'
 
+test-web:
+	cd web && $(NPM) test
+
+console-web:
+	cd web && $(NPM) run build
+
+console-web-check:
+	cd web && $(NPM) run typecheck
+	cd web && $(NPM) test
+	cd web && $(NPM) run build
+	git diff --exit-code -- internal/console/ui
+
 test-race:
 	$(GO) test -race ./...
 
-build:
+build: console-web
 	mkdir -p $(BIN_DIR)
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/router ./cmd/router
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/profile-controller ./cmd/profile-controller
 	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/fake-backend ./cmd/fake-backend
+	$(GO) build -buildvcs=false -trimpath -o $(BIN_DIR)/console ./cmd/console
 
-static-build:
+static-build: console-web
 	mkdir -p $(DIST_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -buildvcs=false -trimpath -o $(DIST_DIR)/router ./cmd/router
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -buildvcs=false -trimpath -o $(DIST_DIR)/fake-backend ./cmd/fake-backend
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -buildvcs=false -trimpath -o $(DIST_DIR)/console ./cmd/console
 
 container-images: static-build
 	docker build -f deploy/docker/router.Dockerfile -t $(ROUTER_IMAGE) .
 	docker build -f deploy/docker/fake-backend.Dockerfile -t $(FAKE_BACKEND_IMAGE) .
+	docker build -f deploy/docker/console.Dockerfile -t $(CONSOLE_IMAGE) .
 
 verify-versions:
 	$(PYTHON) hack/verify_versions.py
@@ -63,7 +81,14 @@ verify-layout:
 verify-experiments:
 	$(PYTHON) hack/verify_experiments.py
 
-verify: fmt-check lint test test-python test-race build verify-versions verify-layout verify-experiments verify-profile verify-observability report-check
+verify: console-web-check fmt-check lint test test-python test-race build verify-versions verify-layout verify-experiments verify-profile verify-observability report-check
+
+console-run: build
+	$(BIN_DIR)/console --repository-root .
+
+console-run-demo: build
+	@test -n "$$LLM_SLO_CONSOLE_CONTROL_TOKEN" || (echo "LLM_SLO_CONSOLE_CONTROL_TOKEN is required"; exit 1)
+	$(BIN_DIR)/console --repository-root . --demo-mode
 
 profile-reconcile: build
 	$(BIN_DIR)/profile-controller --policy config/example-policy.yaml --profile config/qwen3-0.6b-profile.yaml --output config/reconciled-profile.json --once
